@@ -7,8 +7,8 @@ import pyperclip
 import time
 from pynput.mouse import Listener
 from pynput import keyboard
-import pyautogui
 from PIL import ImageGrab, Image
+from modules.mouse import getCursorInfo
 
 def create_menu_item(menu, label, func):
     item = wx.MenuItem(menu, -1, label)
@@ -32,7 +32,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
         return menu
 
     def set_icon(self):
-        path = "text_icon.png" if self.app.textMode else "img_icon.png"
+        path = "./assets/text_icon.png" if self.app.textMode else "./assets/img_icon.png"
         icon = wx.Icon(path)
         self.SetIcon(icon, "e-ink")
 
@@ -98,7 +98,7 @@ class App(wx.App):
             # print("Got clipboard: ", text)
             self.clipboard = text
             # remove all pdf newline
-            text = re.sub(r'(?<=[^.!])\n', ' ', text)
+            text = re.sub(r'(?<=[^.!。：])\n', ' ', text)
             text = text.translate(str.maketrans({"-":  r"\-",
                                           "]":  r"\]",
                                           "\\": r"\\",
@@ -119,28 +119,28 @@ class App(wx.App):
             self.updateScroll()
 
     def imageModeThread(self):
-        cursor = pyautogui.position()
-        width = 900
-        height = 880
+        [x, y] = getCursorInfo()
+        width = 900 
+        height = 678
 
-        startX = cursor.x - width 
-        startY = cursor.y - height
+        startX = x - width 
+        startY = y - height
 
-        endX = cursor.x + width
-        endY = cursor.y + height
+        endX = x + width
+        endY = y + height
 
         screen = ImageGrab.grab(bbox=(startX, startY, endX, endY))
 
         fn = lambda x : 255 if x > 180 else 0
         screen = screen.convert('L').point(fn, mode='1')
-        screen.save("./to_view.png", optimize=True)
+        screen.save("./assets/to_view.png", optimize=True)
 
         screen.close()
-        output = subprocess.getoutput("md5sum ./to_view.png | cut -d ' ' -f 1")
+        output = subprocess.getoutput("md5sum ./assets/to_view.png | cut -d ' ' -f 1")
         print( output )
         if output != self.prevMD5:
             self.prevMD5 = output
-            subprocess.getoutput("mv ./to_view.png ./viewer/res.png")
+            subprocess.getoutput("mv ./assets/to_view.png ./viewer/res.png")
 
     def CheckLoop(self):
         while True:
@@ -149,7 +149,7 @@ class App(wx.App):
                 time.sleep(0.1)
             else:
                 self.imageModeThread()
-                time.sleep(2)
+                time.sleep(.5)
 
     def listenScroll(self):
         def on_scroll(x, y, dx, dy):
@@ -183,7 +183,6 @@ class App(wx.App):
         listener = keyboard.Listener(on_press=on_press)
         listener.start()
         listener.join()
-
 
 def main():
     app = App()
