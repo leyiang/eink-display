@@ -1,1 +1,0 @@
-var mode = "image";
