@@ -8,6 +8,7 @@ import time
 from pynput.mouse import Listener
 from pynput import keyboard
 from PIL import ImageGrab, Image
+from modules.WireManager import WireManager
 from modules.mouse import getCursorInfo
 
 def create_menu_item(menu, label, func):
@@ -46,8 +47,9 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
 
 class App(wx.App):
     def __init__(self):
-        self.textMode = True
+        self.textMode = False
         self.fromFile = False
+        self.wire = WireManager()
         self.clipboard = ""
         self.file = open("./content", "r", encoding='utf-8').read()
         self.filePart = 0
@@ -72,6 +74,12 @@ class App(wx.App):
             file.write(output)
             file.close()
         self.updateScroll()
+
+        print("Sync mode run")
+        if not self.textMode:
+            self.wire.showWire()
+        else:
+            self.wire.hideWire()
 
     def getText(self):
         text = ""

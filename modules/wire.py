@@ -4,7 +4,7 @@ from Xlib import X, display, Xutil
 from Xlib.ext import shape
 from ewmh import EWMH
 
-from mouse import getCursorInfo
+from modules.mouse import getCursorInfo
 
 
 class OutlineWindow:
@@ -86,7 +86,7 @@ class OutlineWindow:
         display.flush()
 
     # Main loop, handling events
-    def loop(self):
+    def loop(self, _id, stop):
         while True:
             [x, y] = getCursorInfo()
 
@@ -98,9 +98,13 @@ class OutlineWindow:
             
             # e = self.d.next_event()
 
-            # # Window has been destroyed, quit
+            if stop():
+                break
+
+            # Window has been destroyed, quit
             # if e.type == X.DestroyNotify:
-            #     break
+                # print("Break!!!")
+                # break
 
             # # Somebody wants to tell us something
             # elif e.type == X.ClientMessage:
@@ -111,5 +115,4 @@ class OutlineWindow:
 
 def createOutlineWindow(x, y, w, h):
     instance = OutlineWindow(display.Display(), 0, 0, 900 * 2, 678 * 2)
-    instance.loop()
     return instance
