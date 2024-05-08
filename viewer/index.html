@@ -19,11 +19,13 @@
             top: 50%;
             height: auto;
             -webkit-transform: translate(-50%, -50%) rotate(90deg);
+            object-fit: contain;
         }
 
         #text {
+            --offset: 0px;
             /* --width: 201px; */
-            font-size: 2.5rem;
+            font-size: 2rem;
             position: fixed;
             /* width: var(--width);
             height: var(--width); */
@@ -34,7 +36,7 @@
             left: 50%;
             /* border: 1px solid #000; */
             margin: 0;
-            -webkit-transform: translate(-50%, -50%) rotate(90deg) ;
+            transform: translate(calc(-50% + var(--offset)), -50%) rotate(90deg) ;
             padding-left: 10px;
             /* -webkit-transform-origin: left top; */
             
@@ -99,12 +101,15 @@
     }
 
     function updateScroll() {
-        var test = content.split("\n");
-        test = test.slice(1 * scroll);
-        el.innerText = test.join("\n");
+        // var test = content.split("\n");
+        // test = test.slice(1 * scroll);
+        // el.innerText = test.join("\n");
+        el.style.setProperty("--offset", scroll * 96 + "vw");
     }
 
     updateScroll();
+
+    // setLog( navigator.userAgent );
 </script>
 
 </html>
