@@ -42,8 +42,20 @@
             
         }
 
+        #text::before {
+            --text-size: 120px;
+            margin-bottom: 1rem;
+            content: "START";
+        }
+
         #text::after {
+            --text-size: 80px;
             content: "END";
+            margin-top: 1rem;
+        }
+
+        #text::before,
+        #text::after {
             bottom: 0;
             display: inline-block;
             width: 100%;
@@ -51,8 +63,9 @@
             background: no-repeat center
                 linear-gradient(white, white),
                 linear-gradient(to bottom, transparent 49%, black 49%, black 51%, transparent 51%, transparent);
-            background-size: 80px, 100%;
+            background-size: var(--text-size), 100%;
         }
+
     </style>
 </head>
 
