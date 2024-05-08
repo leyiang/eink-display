@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Ink</title>
+
+    <script src="mode.js"></script>
+    <script src="content.js"></script>
+    <script src="scroll.js"></script>
+
+    <style>
+        #screen {
+            position: fixed;
+            /* width: auto; */
+            border: 2px solid #000;
+            left: 50%;
+            top: 50%;
+            height: auto;
+            -webkit-transform: translate(-50%, -50%) rotate(90deg);
+        }
+
+        #text {
+            /* --width: 201px; */
+            font-size: 2.5rem;
+            position: fixed;
+            /* width: var(--width);
+            height: var(--width); */
+            /* width: 200px; */
+            /* height:300px; */
+
+            top: 50%;
+            left: 50%;
+            /* border: 1px solid #000; */
+            margin: 0;
+            -webkit-transform: translate(-50%, -50%) rotate(90deg) ;
+            padding-left: 10px;
+            /* -webkit-transform-origin: left top; */
+            
+        }
+
+        #text::after {
+            content: "END";
+            bottom: 0;
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+            background: no-repeat center
+                linear-gradient(white, white),
+                linear-gradient(to bottom, transparent 49%, black 49%, black 51%, transparent 51%, transparent);
+            background-size: 80px, 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <p id="log"></p>
+</body>
+
+<script>
+    const log = document.getElementById("log");
+    const text = document.getElementById("text");
+    const screen = document.getElementById("screen");
+
+    function setLog( content ) {
+        log.innerText = content;
+    }
+
+    // setLog( mode );
+    // Kindle browser compatiblity
+    var height = window.innerHeight == 0 ? window.outerHeight : window.innerHeight;
+    var width = window.innerWidth == 0 ?  window.outerWidth : window.innerWidth;
+
+    function appendEl() {
+        var el;
+
+        if( mode == "text" ) {
+            el = document.createElement("p");
+            el.id = "text";
+        } else {
+            el = document.createElement("img");
+            el.id = "screen";
+            el.src = "./res.png";
+        }
+
+        document.body.appendChild( el );
+        return el;
+    }
+
+    var el = appendEl();
+    el.style.width = height - 10 + "px";
+    el.style.height = width + "px";
+
+    if( mode == "text" ) {
+        el.innerText = content; 
+    } else {
+
+    }
+
+    function updateScroll() {
+        var test = content.split("\n");
+        test = test.slice(1 * scroll);
+        el.innerText = test.join("\n");
+    }
+
+    updateScroll();
+</script>
+
+</html>
