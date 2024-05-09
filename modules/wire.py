@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import Xlib.threaded
 from Xlib import X, display, Xutil
 from Xlib.ext import shape
 from ewmh import EWMH

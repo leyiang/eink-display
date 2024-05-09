@@ -56,6 +56,7 @@ class App(wx.App):
         self.scroll = 0
         self.prevMD5 = ""
         self.server = subprocess.Popen(["live-server", "./viewer"])
+        self.prevCursor = ""
         super(App, self).__init__(False)
 
     def OnInit(self):
@@ -128,9 +129,17 @@ class App(wx.App):
             self.updateScroll()
 
     def imageModeThread(self):
-        [x, y] = getCursorInfo()
         width = 900 
         height = 678
+        info = getCursorInfo()
+        if info == None: return
+        [x, y] = info
+        cursorKey = f"{x}_{y}"
+
+        if cursorKey == self.prevCursor:
+            return
+
+        self.prevCursor = cursorKey
 
         startX = x - width 
         startY = y - height
@@ -139,17 +148,13 @@ class App(wx.App):
         endY = y + height
 
         screen = ImageGrab.grab(bbox=(startX, startY, endX, endY))
-
+        
         fn = lambda x : 255 if x > 180 else 0
         screen = screen.convert('L').point(fn, mode='1')
-        screen.save("./assets/to_view.png", optimize=True)
 
+        screen.save("./assets/to_view.png", optimize=True)
         screen.close()
-        output = subprocess.getoutput("md5sum ./assets/to_view.png | cut -d ' ' -f 1")
-        print( output )
-        if output != self.prevMD5:
-            self.prevMD5 = output
-            subprocess.getoutput("mv ./assets/to_view.png ./viewer/res.png")
+        subprocess.getoutput("mv ./assets/to_view.png ./viewer/res.png")
 
     def CheckLoop(self):
         while True:
