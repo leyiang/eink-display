@@ -12,7 +12,7 @@ class KeyEvent():
             k = key.char  # single-char keys
         except:
             k = key.name  # other keys
-        
+
         if k in self.keyMaps:
             print("Keydown: ", k)
 

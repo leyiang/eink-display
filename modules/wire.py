@@ -114,6 +114,9 @@ class OutlineWindow:
             #         if fmt == 32 and data[0] == self.WM_DELETE_WINDOW:
             #             breakV
 
-def createOutlineWindow(x, y, w, h):
-    instance = OutlineWindow(display.Display(), 0, 0, 900 * 2, 678 * 2)
+    def destroy(self):
+        self.window.destroy()
+        
+def createOutlineWindow(w, h):
+    instance = OutlineWindow(display.Display(), 0, 0, w, h)
     return instance

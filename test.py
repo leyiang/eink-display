@@ -50,7 +50,8 @@ class App(wx.App):
     def __init__(self):
         self.textMode = False
         self.fromFile = False
-        self.wire = WireManager()
+        self.size = SizeManager(1.329, 900)
+        self.wire = WireManager( self.size )
         self.clipboard = ""
         self.file = open("./content", "r", encoding='utf-8').read()
         self.filePart = 0
@@ -58,7 +59,6 @@ class App(wx.App):
         self.prevMD5 = ""
         self.server = subprocess.Popen(["live-server", "./viewer", "--no-browser"], stdout=subprocess.DEVNULL)
         self.prevCursor = ""
-        self.size = SizeManager(1.329, 900)
         self.keyListener = KeyEvent()
         super(App, self).__init__(False)
 
@@ -190,10 +190,21 @@ class App(wx.App):
         self.scroll += 1
         self.updateScroll()
 
+    def shrinkCaptureRegion(self,):
+        self.size.shrink()
+        self.wire.updateSize()
+
+    def expandCaptureRegion(self,):
+        self.size.expand()
+        self.wire.updateSize()
+
     def registerKeyEvents(self):
         print("Register")
         self.keyListener.on("left", self.scrollUp)
         self.keyListener.on("right", self.scrollDown)
+        
+        self.keyListener.on("[", self.shrinkCaptureRegion)
+        self.keyListener.on("]", self.expandCaptureRegion)
         
 def main():
     app = App()
