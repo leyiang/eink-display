@@ -50,7 +50,9 @@ class App(wx.App):
     def __init__(self):
         self.textMode = False
         self.fromFile = False
-        self.size = SizeManager(1.329, 900)
+        with open("./config/init_width", "r") as file:
+            iw = int(file.read())
+            self.size = SizeManager(1.329, iw)
         self.wire = WireManager( self.size )
         self.clipboard = ""
         self.file = open("./content", "r", encoding='utf-8').read()
