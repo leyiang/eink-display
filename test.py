@@ -6,8 +6,8 @@ import threading
 import pyperclip
 import time
 from pynput.mouse import Listener
-from pynput import keyboard
 from PIL import ImageGrab, Image
+from modules.KeyEvent import KeyEvent
 from modules.SizeManager import SizeManager
 from modules.WireManager import WireManager
 from modules.mouse import getCursorInfo
@@ -59,6 +59,7 @@ class App(wx.App):
         self.server = subprocess.Popen(["live-server", "./viewer", "--no-browser"], stdout=subprocess.DEVNULL)
         self.prevCursor = ""
         self.size = SizeManager(1.329, 900)
+        self.keyListener = KeyEvent()
         super(App, self).__init__(False)
 
     def OnInit(self):
@@ -177,33 +178,28 @@ class App(wx.App):
             output = f"var scroll = {self.scroll};";
             file.write(output)
 
-    def listenKeydown(self):
-        def on_press(key):
-            try:
-                k = key.char  # single-char keys
-            except:
-                k = key.name  # other keys
-            
-            if k in ["left", "right"]:
-                print( k )
+    def init(self):
+        self.syncMode()
+        self.registerKeyEvents()
+    
+    def scrollUp(self):
+        self.scroll = max(0, self.scroll-1 )
+        self.updateScroll()
 
-            if k == "left":
-                self.scroll = max(0, self.scroll-1 )
-                self.updateScroll()
-            elif k == "right":
-                self.scroll += 1
-                self.updateScroll()
+    def scrollDown(self):
+        self.scroll += 1
+        self.updateScroll()
 
-        listener = keyboard.Listener(on_press=on_press)
-        listener.start()
-        listener.join()
-
+    def registerKeyEvents(self):
+        print("Register")
+        self.keyListener.on("left", self.scrollUp)
+        self.keyListener.on("right", self.scrollDown)
+        
 def main():
     app = App()
     threading.Thread(target=app.MainLoop).start()
     threading.Thread(target=app.listenScroll).start()
-    threading.Thread(target=app.listenKeydown).start()
-    app.syncMode()
+    app.init()
     app.CheckLoop()
 
 if __name__ == '__main__':
