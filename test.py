@@ -8,6 +8,7 @@ import time
 from pynput.mouse import Listener
 from pynput import keyboard
 from PIL import ImageGrab, Image
+from modules.SizeManager import SizeManager
 from modules.WireManager import WireManager
 from modules.mouse import getCursorInfo
 
@@ -57,6 +58,7 @@ class App(wx.App):
         self.prevMD5 = ""
         self.server = subprocess.Popen(["live-server", "./viewer", "--no-browser"], stdout=subprocess.DEVNULL)
         self.prevCursor = ""
+        self.size = SizeManager(1.329, 900)
         super(App, self).__init__(False)
 
     def OnInit(self):
@@ -129,8 +131,6 @@ class App(wx.App):
             self.updateScroll()
 
     def imageModeThread(self):
-        width = 900 
-        height = 678
         info = getCursorInfo()
         if info == None: return
         [x, y] = info
@@ -141,11 +141,11 @@ class App(wx.App):
 
         self.prevCursor = cursorKey
 
-        startX = x - width 
-        startY = y - height
+        startX = x - self.size.w 
+        startY = y - self.size.h
 
-        endX = x + width
-        endY = y + height
+        endX = x + self.size.w
+        endY = y + self.size.h
 
         screen = ImageGrab.grab(bbox=(startX, startY, endX, endY))
         
