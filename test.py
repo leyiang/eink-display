@@ -7,6 +7,7 @@ import pyperclip
 import time
 from pynput.mouse import Listener
 from PIL import ImageGrab, Image
+from modules.ConfigManager import ConfigManager
 from modules.KeyEvent import KeyEvent
 from modules.SizeManager import SizeManager
 from modules.WireManager import WireManager
@@ -50,9 +51,15 @@ class App(wx.App):
     def __init__(self):
         self.textMode = False
         self.fromFile = False
+        self.config = ConfigManager()
+
         with open("./config/init_width", "r") as file:
             iw = int(file.read())
-            self.size = SizeManager(1.2, iw)
+            self.size = SizeManager(
+                self.config.get("ratio", 1.2),
+                iw
+            )
+
         self.wire = WireManager( self.size )
         self.clipboard = ""
         self.file = open("./content", "r", encoding='utf-8').read()
