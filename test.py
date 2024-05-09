@@ -55,7 +55,7 @@ class App(wx.App):
         self.filePart = 0
         self.scroll = 0
         self.prevMD5 = ""
-        self.server = subprocess.Popen(["live-server", "./viewer"])
+        self.server = subprocess.Popen(["live-server", "./viewer"], stdout=subprocess.DEVNULL)
         self.prevCursor = ""
         super(App, self).__init__(False)
 
