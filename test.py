@@ -55,6 +55,7 @@ class App(wx.App):
         self.filePart = 0
         self.scroll = 0
         self.prevMD5 = ""
+        self.server = subprocess.Popen(["live-server", "./viewer"])
         super(App, self).__init__(False)
 
     def OnInit(self):
