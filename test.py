@@ -52,7 +52,7 @@ class App(wx.App):
         self.fromFile = False
         with open("./config/init_width", "r") as file:
             iw = int(file.read())
-            self.size = SizeManager(1.329, iw)
+            self.size = SizeManager(1.2, iw)
         self.wire = WireManager( self.size )
         self.clipboard = ""
         self.file = open("./content", "r", encoding='utf-8').read()
@@ -163,10 +163,9 @@ class App(wx.App):
         while True:
             if self.textMode:
                 self.textModeThread()
-                time.sleep(0.1)
             else:
                 self.imageModeThread()
-                time.sleep(.5)
+            time.sleep(0.1)
 
     def listenScroll(self):
         def on_scroll(x, y, dx, dy):
@@ -180,6 +179,13 @@ class App(wx.App):
             output = f"var scroll = {self.scroll};";
             file.write(output)
 
+    def updateRegion(self):
+        while True:
+            if not self.textMode and self.wire and self.wire.wire:
+                [x, y] = getCursorInfo()
+                self.wire.wire.updatePos(x, y)
+            time.sleep(0.01)
+        
     def init(self):
         self.syncMode()
         self.registerKeyEvents()
@@ -212,6 +218,7 @@ def main():
     app = App()
     threading.Thread(target=app.MainLoop).start()
     threading.Thread(target=app.listenScroll).start()
+    threading.Thread(target=app.updateRegion).start()
     app.init()
     app.CheckLoop()
 

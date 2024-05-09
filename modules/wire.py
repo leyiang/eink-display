@@ -86,33 +86,13 @@ class OutlineWindow:
         # Apply changes
         display.flush()
 
-    # Main loop, handling events
-    def loop(self, _id, stop):
-        while True:
-            [x, y] = getCursorInfo()
+    # cx, cy cursor pos
+    def updatePos(self, cx, cy):
+        newX = cx - self.w // 2
+        newY = cy - self.h // 2
 
-            newX = x - self.w // 2
-            newY = y - self.h // 2
-
-            self.window.configure(x=newX, y=newY, stack_mode=X.Above)
-            self.d.flush()
-            
-            # e = self.d.next_event()
-
-            if stop():
-                break
-
-            # Window has been destroyed, quit
-            # if e.type == X.DestroyNotify:
-                # print("Break!!!")
-                # break
-
-            # # Somebody wants to tell us something
-            # elif e.type == X.ClientMessage:
-            #     if e.client_type == self.WM_PROTOCOLS:
-            #         fmt, data = e.data
-            #         if fmt == 32 and data[0] == self.WM_DELETE_WINDOW:
-            #             breakV
+        self.window.configure(x=newX, y=newY, stack_mode=X.Above)
+        self.d.flush()
 
     def destroy(self):
         self.window.destroy()
