@@ -1,4 +1,6 @@
 import re
+import os
+import sys
 import wx.adv
 import subprocess        
 import wx
@@ -49,7 +51,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
 
 class App(wx.App):
     def __init__(self):
-        self.textMode = False
+        self.textMode = True
         self.fromFile = False
         self.config = ConfigManager()
 
@@ -132,7 +134,7 @@ class App(wx.App):
             for i in range(len(segs)):
                 segs[i] = f'"{ segs[i] }\\n"'
             
-            raw = "\n +".join(segs)
+            raw = "\n\n +".join(segs)
             output = f'var content = {raw}'
             with open("./viewer/content.js", "w") as file:
                 file.write(output)
@@ -140,17 +142,7 @@ class App(wx.App):
             self.scroll = 0
             self.updateScroll()
 
-    def imageModeThread(self):
-        info = getCursorInfo()
-        if info == None: return
-        [x, y] = info
-        cursorKey = f"{x}_{y}"
-
-        if cursorKey == self.prevCursor:
-            return
-
-        self.prevCursor = cursorKey
-
+    def updateImage(self, x, y):
         startX = x - self.size.w 
         startY = y - self.size.h
 
@@ -165,7 +157,22 @@ class App(wx.App):
         screen.save("./assets/to_view.png", optimize=True)
         screen.close()
         subprocess.getoutput("mv ./assets/to_view.png ./viewer/res.png")
+        print("Time: ", time.time())
 
+    def imageModeThread(self):
+        info = getCursorInfo()
+        if info == None: return
+        [x, y] = info
+        cursorKey = f"{x}_{y}"
+
+        if cursorKey == self.prevCursor:
+            return
+
+        self.prevCursor = cursorKey
+        self.x = x
+        self.y = y
+        self.updateImage(x, y)
+        
     def CheckLoop(self):
         while True:
             if self.textMode:
@@ -188,9 +195,12 @@ class App(wx.App):
 
     def updateRegion(self):
         while True:
-            if not self.textMode and self.wire and self.wire.wire:
-                [x, y] = getCursorInfo()
-                self.wire.wire.updatePos(x, y)
+            if self.wire and self.wire.wire:
+                if self.textMode:
+                    self.wire.hideWire()
+                else:
+                    [x, y] = getCursorInfo()
+                    self.wire.wire.updatePos(x, y)
             time.sleep(0.01)
         
     def init(self):
@@ -213,6 +223,13 @@ class App(wx.App):
         self.size.expand()
         self.wire.updateSize()
 
+    def redrawImage(self):
+        if not self.textMode:
+            self.updateImage(
+                self.x,
+                self.y,
+            )
+        
     def registerKeyEvents(self):
         print("Register")
         self.keyListener.on("left", self.scrollUp)
@@ -221,8 +238,16 @@ class App(wx.App):
         self.keyListener.on("[", self.shrinkCaptureRegion)
         self.keyListener.on("]", self.expandCaptureRegion)
         
+        self.keyListener.on("2", self.redrawImage)
+        
 def main():
     app = App()
+
+    # def done():
+    #     os._exit(0)
+
+    # app.keyListener.on("0", done)
+
     threading.Thread(target=app.MainLoop).start()
     threading.Thread(target=app.listenScroll).start()
     threading.Thread(target=app.updateRegion).start()
