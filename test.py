@@ -51,14 +51,14 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
 
 class App(wx.App):
     def __init__(self):
-        self.textMode = True
         self.fromFile = False
         self.config = ConfigManager()
 
-        self.size = SizeManager(
-            self.config.get("ratio", 1.2),
-            self.config.get("init_width", 900)
+        self.textMode = (
+            self.config.get("init_mode", "text") == "text"
         )
+
+        self.size = SizeManager()
 
         self.wire = WireManager( self.size )
         self.clipboard = ""
@@ -213,11 +213,11 @@ class App(wx.App):
         self.scroll += 1
         self.updateScroll()
 
-    def shrinkCaptureRegion(self,):
+    def shrinkCaptureRegion(self):
         self.size.shrink()
         self.wire.updateSize()
 
-    def expandCaptureRegion(self,):
+    def expandCaptureRegion(self):
         self.size.expand()
         self.wire.updateSize()
 
@@ -228,15 +228,25 @@ class App(wx.App):
                 self.y,
             )
         
+    def shrinkRatio(self):
+        self.size.shrinkRatio()
+        self.wire.updateSize()
+
+    def expandRatio(self):
+        self.size.expandRatio()
+        self.wire.updateSize()
+
     def registerKeyEvents(self):
-        print("Register")
         self.keyListener.on("left", self.scrollUp)
         self.keyListener.on("right", self.scrollDown)
-        
+        self.keyListener.on("2", self.redrawImage)
+
         self.keyListener.on("[", self.shrinkCaptureRegion)
         self.keyListener.on("]", self.expandCaptureRegion)
-        
-        self.keyListener.on("2", self.redrawImage)
+
+        self.keyListener.on("9", self.shrinkRatio)
+        self.keyListener.on("0", self.expandRatio)
+
         
 def main():
     app = App()
@@ -254,3 +264,12 @@ def main():
 
 if __name__ == '__main__':
     main()
+    def shrinkCaptureRegion(self):
+        self.size.shrink()
+        self.wire.updateSize()
+        self.config.update("init_width", self.size.w)
+
+    def expandCaptureRegion(self):
+        self.size.expand()
+        self.wire.updateSize()
+        self.config.update("init_width", self.size.w)
