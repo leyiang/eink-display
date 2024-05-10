@@ -4,7 +4,7 @@ import toml
 class ConfigManager():
     def __init__(self) -> None:
         basepath = path.dirname(__file__)
-        filepath = path.abspath(path.join(basepath, "..", "config", "config.toml"))
+        filepath = path.abspath(path.join(basepath, "..", "config.toml"))
 
         with open( filepath, "r" ) as file:
             raw = file.read()

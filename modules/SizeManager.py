@@ -17,13 +17,6 @@ class SizeManager():
         self.w += (sign * step)
         self.updateHeight()
 
-        basepath = path.dirname(__file__)
-        filepath = path.abspath(path.join(basepath, "..", "config", "init_width"))
-
-        with open(filepath, "w") as file:
-            file.write( str(self.w) )
-            file.close()
-
     def shrink(self, step=0):
         self.updateWidth(-1, step)
 

@@ -55,12 +55,10 @@ class App(wx.App):
         self.fromFile = False
         self.config = ConfigManager()
 
-        with open("./config/init_width", "r") as file:
-            iw = int(file.read())
-            self.size = SizeManager(
-                self.config.get("ratio", 1.2),
-                iw
-            )
+        self.size = SizeManager(
+            self.config.get("ratio", 1.2),
+            self.config.get("init_width", 900)
+        )
 
         self.wire = WireManager( self.size )
         self.clipboard = ""
