@@ -1,8 +1,10 @@
+#!/usr/bin/env python
+
 import re
 import os
 import sys
 import wx.adv
-import subprocess        
+import subprocess
 import wx
 import threading
 import pyperclip
@@ -198,7 +200,8 @@ class App(wx.App):
                     self.wire.hideWire()
                 else:
                     [x, y] = getCursorInfo()
-                    self.wire.wire.updatePos(x, y)
+                    if self.wire and self.wire.wire:
+                        self.wire.wire.updatePos(x, y)
             time.sleep(0.01)
         
     def init(self):
