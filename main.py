@@ -85,7 +85,7 @@ class App(wx.App):
     def on_exit(self):
         self.server.kill()
 
-    def toggle_capture(self, a):
+    def toggle_capture(self):
         self.captureMode = not self.captureMode
         if self.captureMode:
             self.wire.showWire()
@@ -320,6 +320,7 @@ class App(wx.App):
 
         self.keyListener.on("9", self.shrinkRatio)
         self.keyListener.on("0", self.expandRatio)
+        self.keyListener.on("`", self.toggle_capture)
 
         
 def main():
