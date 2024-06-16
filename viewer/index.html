@@ -11,6 +11,10 @@
     <script src="scroll.js"></script>
 
     <style>
+        body {
+            margin: 0;
+        }
+
         #screen {
             position: fixed;
             /* width: auto; */
@@ -18,14 +22,14 @@
             left: 50%;
             top: 50%;
             height: auto;
-            transform: translate(-50%, -50%) rotate(90deg);
+            transform: translate(-50%, -50%) ;
             object-fit: contain;
         }
 
         #text {
             --offset: 0px;
             /* --width: 201px; */
-            font-size: 2rem;
+            font-size: 3rem;
             position: fixed;
             /* width: var(--width);
             height: var(--width); */
@@ -36,8 +40,8 @@
             left: 50%;
             /* border: 1px solid #000; */
             margin: 0;
-            transform: translate(calc(-50% + var(--offset)), -50%) rotate(90deg) ;
-            padding-left: 10px;
+            transform: translate(calc(-50% + var(--offset)), -50%) ;
+            /* padding-left: 10px; */
             /* -webkit-transform-origin: left top; */
             
         }
@@ -56,6 +60,7 @@
 
         #text::before,
         #text::after {
+            font-size: 2rem;
             bottom: 0;
             display: inline-block;
             width: 100%;
@@ -66,7 +71,21 @@
             background-size: var(--text-size), 100%;
         }
 
+        #log {
+            position: fixed;
+            z-index: 9999999;
+        }
     </style>
+
+    <!-- <script>
+        const sockets = [];
+        const nativeWebsockets = window.WebSocket;
+        window.WebSocket = function(...args) {
+            const socket = new nativeWebsockets(...args);
+            sockets.push( socket );
+            return socket;
+        }
+    </script> -->
 </head>
 
 <body>
@@ -99,13 +118,21 @@
             el.src = "./res.png";
         }
 
-        document.body.appendChild( el );
         return el;
     }
 
     var el = appendEl();
-    el.style.width = height - 10 + "px";
-    el.style.height = width + "px";
+    // el.style.width = height - 10 + "px";
+    // el.style.height = width + "px";
+
+    el.style.height = height + "px";
+    el.style.width = width + "px";
+
+
+
+    setTimeout(() => {
+        document.body.appendChild(el);
+    }, 50 );
 
     if( mode == "text" ) {
         el.innerText = content; 
@@ -123,6 +150,30 @@
     updateScroll();
 
     // setLog( navigator.userAgent );
+
+    // setTimeout(() => {
+    //     const socket = sockets[0];
+
+    //     socket.onmessage = function(msg) {
+    //         if( msg.data == "reload" ) {
+    //             localStorage.setItem("get_websocket", new Date().getTime() )
+    //             window.location.reload()
+    //         }
+    //     }
+    // }, 100);
+
+    // el.addEventListener("load", e => {
+    //     localStorage.setItem("page_load", new Date().getTime() )
+
+    //     const getWebSocket = localStorage.getItem("get_websocket");
+    //     const load = localStorage.getItem("page_load");
+
+    //     setLog( getWebSocket + "  " + load );
+    // });
+
+    window.addEventListener("mousedown", e => {
+        window.location.reload();
+    });
 </script>
 
 </html>
