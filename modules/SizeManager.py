@@ -10,7 +10,7 @@ class SizeManager():
         self.ratio = self.config.get("ratio", 1.2)
         self.w = self.config.get("init_width", 900)
         self.step = 10
-        self.rstep = .2
+        self.rstep = .1
 
         self.updateHeight()
 
