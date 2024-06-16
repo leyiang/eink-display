@@ -35,6 +35,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
 
     def CreatePopupMenu(self):
         menu = wx.Menu()
+        create_menu_item(menu, 'Toggle Capture', self.app.toggle_capture)
         create_menu_item(menu, 'Exit', self.on_exit)
         return menu
 
@@ -50,6 +51,8 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
     def on_exit(self, event):
         wx.CallAfter(self.Destroy)
         self.frame.Close()
+        self.app.on_exit()
+        os._exit(0)
 
 class App(wx.App):
     def __init__(self):
@@ -57,15 +60,15 @@ class App(wx.App):
         self.config = ConfigManager()
 
         self.textMode = (
-            self.config.get("init_mode", "text") == "text"
+            self.config.get("mode", "text") == "text"
         )
 
         self.size = SizeManager()
-
         self.wire = WireManager( self.size )
         self.clipboard = ""
         self.file = open("./content", "r", encoding='utf-8').read()
         self.filePart = 0
+        self.captureMode = True
         self.scroll = 0
         self.prevMD5 = ""
         self.server = subprocess.Popen(["live-server", "./viewer", "--no-browser"], stdout=subprocess.DEVNULL)
@@ -78,6 +81,16 @@ class App(wx.App):
         self.SetTopWindow(frame)
         TaskBarIcon(frame, self)
         return True
+
+    def on_exit(self):
+        self.server.kill()
+
+    def toggle_capture(self, a):
+        self.captureMode = not self.captureMode
+        if self.captureMode:
+            self.wire.showWire()
+        else:
+            self.wire.hideWire()
 
     def toggleMode(self):
         self.textMode = not self.textMode
@@ -96,6 +109,8 @@ class App(wx.App):
             self.wire.showWire()
         else:
             self.wire.hideWire()
+
+        self.config.update("mode", mode)
 
     def getText(self):
         text = ""
@@ -119,7 +134,7 @@ class App(wx.App):
         if not text: return
 
         if text != self.clipboard:
-            # print("Got clipboard: ", text)
+            print("Got clipboard: ", text)
             self.clipboard = text
             # remove all pdf newline
             text = re.sub(r'(?<=[^.!。：])\n', ' ', text)
@@ -159,6 +174,43 @@ class App(wx.App):
         subprocess.getoutput("mv ./assets/to_view.png ./viewer/res.png")
         print("Time: ", time.time())
 
+    def refreshImage(self):
+        subprocess.getoutput("cp ./viewer/res.png ./viewer/tmp.png")
+
+        fn = lambda x : 0
+        img = Image.new(mode="RGB", size=(2600, 1600))
+        img = img.convert("L").point(fn, mode="1")
+        img.save("./viewer/res.png", optimize=True)
+        img.close()
+        time.sleep(.16)
+        subprocess.getoutput("mv ./viewer/tmp.png ./viewer/res.png")
+
+
+    def refreshText(self):
+        self.toggleMode()
+
+        fn = lambda x : 0
+        img = Image.new(mode="RGB", size=(2600, 1600))
+        img = img.convert("L").point(fn, mode="1")
+        img.save("./viewer/res.png", optimize=True)
+        img.close()
+        time.sleep(.16)
+
+        # fn = lambda x : 1
+        # img = Image.new(mode="RGB", size=(2600, 1600))
+        # img = img.convert("L").point(fn, mode="1")
+        # img.save("./viewer/res.png", optimize=True)
+        # img.close()
+        #
+        # time.sleep(.16)
+        self.toggleMode()
+
+    def refresh(self):
+        if self.textMode:
+            self.refreshText()
+        else:
+            self.refreshImage()
+
     def imageModeThread(self):
         info = getCursorInfo()
         if info == None: return
@@ -175,17 +227,31 @@ class App(wx.App):
         
     def CheckLoop(self):
         while True:
+            if not self.captureMode:
+                time.sleep(0.1)
+                continue
             if self.textMode:
                 self.textModeThread()
             else:
-                self.imageModeThread()
+                pass
+                # draw image while mouse click
+                # stop auto draw
+                # self.imageModeThread()
             time.sleep(0.1)
 
     def listenScroll(self):
+        def on_click(x, y, button, *_args):
+            if not self.captureMode: return
+
+            btn = button.name
+            if btn in ["left", "middle"]:
+                if not self.textMode:
+                    self.updateImage(x, y)
+
         def on_scroll(x, y, dx, dy):
             self.filePart -= dy
 
-        with Listener(on_scroll=on_scroll) as listener:
+        with Listener(on_scroll=on_scroll, on_click=on_click) as listener:
             listener.join()
         
     def updateScroll(self):
@@ -217,10 +283,12 @@ class App(wx.App):
         self.updateScroll()
 
     def shrinkCaptureRegion(self):
+        if self.textMode: return
         self.size.shrink()
         self.wire.updateSize()
 
     def expandCaptureRegion(self):
+        if self.textMode: return
         self.size.expand()
         self.wire.updateSize()
 
@@ -232,17 +300,20 @@ class App(wx.App):
             )
         
     def shrinkRatio(self):
+        if self.textMode: return
         self.size.shrinkRatio()
         self.wire.updateSize()
 
     def expandRatio(self):
+        if self.textMode: return
         self.size.expandRatio()
         self.wire.updateSize()
 
     def registerKeyEvents(self):
         self.keyListener.on("left", self.scrollUp)
         self.keyListener.on("right", self.scrollDown)
-        self.keyListener.on("2", self.redrawImage)
+        # self.keyListener.on("2", self.redrawImage)
+        self.keyListener.on("5", self.refresh)
 
         self.keyListener.on("[", self.shrinkCaptureRegion)
         self.keyListener.on("]", self.expandCaptureRegion)
@@ -266,13 +337,5 @@ def main():
     app.CheckLoop()
 
 if __name__ == '__main__':
+    os.chdir( sys.argv[1] )
     main()
-    def shrinkCaptureRegion(self):
-        self.size.shrink()
-        self.wire.updateSize()
-        self.config.update("init_width", self.size.w)
-
-    def expandCaptureRegion(self):
-        self.size.expand()
-        self.wire.updateSize()
-        self.config.update("init_width", self.size.w)
