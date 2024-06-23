@@ -1,7 +1,7 @@
 file = main.py
 
 run:
-	python $(file)
+	python $(file) .
 
 edit:
 	nvim $(file)
