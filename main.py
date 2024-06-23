@@ -284,11 +284,15 @@ class App(wx.App):
 
     def shrinkCaptureRegion(self):
         if self.textMode: return
+        if not self.captureMode: return
+
         self.size.shrink()
         self.wire.updateSize()
 
     def expandCaptureRegion(self):
         if self.textMode: return
+        if not self.captureMode: return
+
         self.size.expand()
         self.wire.updateSize()
 
@@ -301,11 +305,15 @@ class App(wx.App):
         
     def shrinkRatio(self):
         if self.textMode: return
+        if not self.captureMode: return
+
         self.size.shrinkRatio()
         self.wire.updateSize()
 
     def expandRatio(self):
         if self.textMode: return
+        if not self.captureMode: return
+
         self.size.expandRatio()
         self.wire.updateSize()
 
@@ -320,9 +328,12 @@ class App(wx.App):
 
         self.keyListener.on("9", self.shrinkRatio)
         self.keyListener.on("0", self.expandRatio)
-        self.keyListener.on("`", self.toggle_capture)
 
-        
+        self.keyListener.on("`", self.toggle_capture)
+        self.keyListener.on("scroll_lock", self.toggle_capture)
+        # self.keyListener.on("print_screen", self.redrawImage)
+        # "pause" key not used
+
 def main():
     app = App()
 
