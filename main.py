@@ -148,7 +148,7 @@ class App(wx.App):
                                           '"':  r"\""}))
             segs = text.split("\n")
             for i in range(len(segs)):
-                segs[i] = f'"{ segs[i] }\\n"'
+                segs[i] = f'"<p>{ segs[i] }</p>"'
             
             raw = "\n\n +".join(segs)
             output = f'var content = {raw}'

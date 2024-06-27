@@ -67,6 +67,11 @@
             background: black;
             margin: 10px 0
         }
+        
+        #text p {
+            margin: 0;
+            margin-bottom: 1rem;
+        }
 
         #log {
             position: fixed;
@@ -107,7 +112,7 @@
         var el;
 
         if( mode == "text" ) {
-            el = document.createElement("p");
+            el = document.createElement("div");
             el.id = "text";
         } else {
             el = document.createElement("img");
@@ -132,7 +137,7 @@
     }, 50 );
 
     if( mode == "text" ) {
-        el.innerText = content; 
+        el.innerHTML = content; 
     } else {
 
     }
