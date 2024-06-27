@@ -16,6 +16,7 @@ from modules.KeyEvent import KeyEvent
 from modules.SizeManager import SizeManager
 from modules.WireManager import WireManager
 from modules.mouse import getCursorInfo
+from modules.utils import debounce
 
 def create_menu_item(menu, label, func):
     item = wx.MenuItem(menu, -1, label)
@@ -137,7 +138,7 @@ class App(wx.App):
             print("Got clipboard: ", text)
             self.clipboard = text
             # remove all pdf newline
-            text = re.sub(r'(?<=[^.!。：])\n', ' ', text)
+            text = re.sub(r'(?<=[^.!。！：])\n', ' ', text)
             text = text.translate(str.maketrans({"-":  r"\-",
                                           "]":  r"\]",
                                           "\\": r"\\",
@@ -186,6 +187,7 @@ class App(wx.App):
         subprocess.getoutput("mv ./viewer/tmp.png ./viewer/res.png")
 
 
+    @debounce(.2)
     def refreshText(self):
         self.toggleMode()
 
@@ -194,7 +196,7 @@ class App(wx.App):
         img = img.convert("L").point(fn, mode="1")
         img.save("./viewer/res.png", optimize=True)
         img.close()
-        time.sleep(.16)
+        time.sleep(.25)
 
         # fn = lambda x : 1
         # img = Image.new(mode="RGB", size=(2600, 1600))
@@ -316,7 +318,7 @@ class App(wx.App):
 
         self.size.expandRatio()
         self.wire.updateSize()
-
+         
     def registerKeyEvents(self):
         self.keyListener.on("left", self.scrollUp)
         self.keyListener.on("right", self.scrollDown)
