@@ -95,6 +95,8 @@ class App(wx.App):
 
     def toggleMode(self):
         self.textMode = not self.textMode
+        if not self.captureMode:
+            self.toggle_capture()
         self.syncMode()
 
     def syncMode(self):
@@ -138,7 +140,7 @@ class App(wx.App):
             print("Got clipboard: ", text)
             self.clipboard = text
             # remove all pdf newline
-            text = re.sub(r'(?<=[^.!。！：])\n', ' ', text)
+            text = re.sub(r'(?<=[^.!。！：:：])\n', ' ', text)
             text = text.translate(str.maketrans({"-":  r"\-",
                                           "]":  r"\]",
                                           "\\": r"\\",
@@ -187,7 +189,7 @@ class App(wx.App):
         subprocess.getoutput("mv ./viewer/tmp.png ./viewer/res.png")
 
 
-    @debounce(.2)
+    @debounce(.05)
     def refreshText(self):
         self.toggleMode()
 
