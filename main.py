@@ -17,6 +17,7 @@ from modules.SizeManager import SizeManager
 from modules.WireManager import WireManager
 from modules.mouse import getCursorInfo
 from modules.utils import debounce
+from modules.ImageManager import ImageManager
 
 def create_menu_item(menu, label, func):
     item = wx.MenuItem(menu, -1, label)
@@ -41,7 +42,10 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
         return menu
 
     def set_icon(self):
-        path = "./assets/text_icon.png" if self.app.textMode else "./assets/img_icon.png"
+        icon_name = "text_icon.png" if self.app.textMode else "img_icon.png"
+        if not self.app.captureMode:
+            icon_name = "view_icon.png"  # You'll need to create this icon
+        path = f"./assets/{icon_name}"
         icon = wx.Icon(path)
         self.SetIcon(icon, "e-ink")
 
@@ -69,7 +73,7 @@ class App(wx.App):
         self.clipboard = ""
         self.file = open("./content", "r", encoding='utf-8').read()
         self.filePart = 0
-        self.captureMode = True
+        self.captureMode = True  # We'll use this for both purposes
         self.scroll = 0
         self.prevMD5 = ""
         self.server = subprocess.Popen(["live-server", "./viewer", "--no-browser"], stdout=subprocess.DEVNULL)
@@ -77,6 +81,8 @@ class App(wx.App):
         self.keyListener = KeyEvent()
 
         self.thresh = 180 
+        self.image_manager = ImageManager()
+
         super(App, self).__init__(False)
 
     def OnInit(self):
@@ -179,24 +185,27 @@ class App(wx.App):
         return image.convert('L').point(fn, mode='1')
 
     def updateImage(self, x, y):
-        startX = x - self.size.w
-        startY = y - self.size.h
-
-        endX = x + self.size.w
-        endY = y + self.size.h
-
-        screen = ImageGrab.grab(bbox=(startX, startY, endX, endY))
-
-        w,h = screen.size
-        bw = 3 # border width
-        rm_border = screen.crop((bw,bw,w-bw, h-bw))
-        rm_border.save("./viewer/raw.png")
-
-        bw_screen = self.get_bw_image( screen )
-        self.display_image( bw_screen )
-
-        screen.close()
-        bw_screen.close()
+        if self.captureMode:
+            startX = x - self.size.w
+            startY = y - self.size.h
+            endX = x + self.size.w
+            endY = y + self.size.h
+            
+            screen = ImageGrab.grab(bbox=(startX, startY, endX, endY))
+            
+            w,h = screen.size
+            bw = 3 # border width
+            rm_border = screen.crop((bw,bw,w-bw, h-bw))
+            rm_border.save("./viewer/raw.png")
+            
+            bw_screen = self.get_bw_image(screen)
+            
+            # Save to image manager and display immediately
+            self.image_manager.add_image(bw_screen)
+            self.display_image(bw_screen)  # Always display the new capture
+            
+            screen.close()
+            bw_screen.close()
 
     def refreshImage(self):
         subprocess.getoutput("cp ./viewer/res.png ./viewer/tmp.png")
@@ -268,14 +277,15 @@ class App(wx.App):
             time.sleep(0.1)
 
     def listenScroll(self):
-        def on_click(x, y, button, *_args):
+        def on_click(x, y, button, pressed, *_args):
             if not self.captureMode: return
+
+            if not pressed: return
 
             btn = button.name
             if btn in ["left", "middle"]:
                 if not self.textMode:
                     self.updateImage(x, y)
-                    self.refreshImage()
 
         def on_scroll(x, y, dx, dy):
             self.filePart -= dy
@@ -376,12 +386,41 @@ class App(wx.App):
         # self.keyListener.on("9", self.shrinkRatio)
         # self.keyListener.on("0", self.expandRatio)
 
-        self.keyListener.on("`", self.toggle_capture)
+        self.keyListener.on("`", self.toggle_view_mode)
         self.keyListener.on("scroll_lock", self.toggle_capture)
         # self.keyListener.on("print_screen", self.redrawImage)
         # "pause" key not used
 
         self.keyListener.on("f7", self.wire.start_area_selection)
+
+        self.keyListener.on("f8", self.toggle_view_mode)  # Renamed from toggle_capture_mode
+        self.keyListener.on("left", self.prev_image)
+        self.keyListener.on("right", self.next_image)
+        self.keyListener.on("delete", self.clear_captures)
+
+    def toggle_view_mode(self):
+        self.captureMode = not self.captureMode
+        if not self.captureMode:
+            # Switch to view mode - show first image
+            self.current_index = 0  # Reset to first image
+            print("toggle_view_mode, show_first")
+            self.image_manager.show_first()  # Add this method
+            self.wire.hideWire()
+        else:
+            # Switch back to capture mode - show last captured image
+            self.wire.showWire()
+            self.image_manager.show_last()
+        
+    def prev_image(self):
+        if not self.captureMode:
+            self.image_manager.prev_image()
+            
+    def next_image(self):
+        if not self.captureMode:
+            self.image_manager.next_image()
+            
+    def clear_captures(self):
+        self.image_manager.clear_images()
 
 def main():
     app = App()

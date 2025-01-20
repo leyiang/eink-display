@@ -1,9 +1,10 @@
 from modules.wire import createOutlineWindow
 from modules.SelectionWindow import SelectionWindow
 import threading
-from PIL import ImageGrab
+from PIL import ImageGrab, Image
 import wx
 import time
+import subprocess
 
 class WireManager():
     def __init__(self, size):
@@ -12,6 +13,29 @@ class WireManager():
         self._lock = threading.Lock()
         self.selection_window = None
     
+    def get_active_window_screenshot(self):
+        """Get screenshot of only the active window using scrot"""
+        try:
+            # Capture active window to a temporary file
+            temp_file = "/tmp/temp_screenshot.png"
+            result = subprocess.run(["scrot", "-u", temp_file], capture_output=True)
+            
+            if result.returncode != 0:
+                print("Failed to capture with scrot:", result.stderr)
+                return None
+                
+            # Open the captured image
+            screenshot = Image.open(temp_file)
+            
+            # Clean up temp file
+            subprocess.run(["rm", temp_file])
+            
+            return screenshot
+            
+        except Exception as e:
+            print(f"Error capturing active window: {e}")
+            return None
+        
     def showWire(self):
         with self._lock:
             if self.wire is None:  # Only create if there isn't one
@@ -46,18 +70,19 @@ class WireManager():
         was_visible = self.wire is not None
         if was_visible:
             self.hideWire()
-            # Small delay to ensure wire window is hidden
             time.sleep(0.1)
         
         try:
-            # Capture full screen
-            screenshot = ImageGrab.grab()
+            # Capture active window instead of full screen
+            screenshot = self.get_active_window_screenshot()
+            if screenshot is None:
+                print("Failed to capture active window, falling back to full screen")
+                screenshot = ImageGrab.grab()
             
             # Create selection window in the main thread
             wx.CallAfter(self._create_selection_window, screenshot, was_visible)
         except Exception as e:
             print(f"Error capturing screenshot: {e}")
-            # Restore wire window if there was an error
             if was_visible:
                 self.showWire()
         
