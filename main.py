@@ -366,15 +366,15 @@ class App(wx.App):
         # self.keyListener.on("2", self.redrawImage)
         self.keyListener.on("5", self.refresh)
 
-        self.keyListener.on("[", self.shrinkCaptureRegion)
-        self.keyListener.on("]", self.expandCaptureRegion)
+        # self.keyListener.on("[", self.shrinkCaptureRegion)
+        # self.keyListener.on("]", self.expandCaptureRegion)
 
         self.keyListener.on("-", self.shrinkThresh)
         self.keyListener.on("=", self.expandThresh)
         self.keyListener.on("print_screen", self.toggleThresh)
 
-        self.keyListener.on("9", self.shrinkRatio)
-        self.keyListener.on("0", self.expandRatio)
+        # self.keyListener.on("9", self.shrinkRatio)
+        # self.keyListener.on("0", self.expandRatio)
 
         self.keyListener.on("`", self.toggle_capture)
         self.keyListener.on("scroll_lock", self.toggle_capture)
