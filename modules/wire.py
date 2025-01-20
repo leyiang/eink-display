@@ -86,6 +86,8 @@ class OutlineWindow:
         # Apply changes
         display.flush()
 
+        self._destroyed = False
+
     # cx, cy cursor pos
     def updatePos(self, cx, cy):
         newX = cx - self.w // 2
@@ -95,8 +97,18 @@ class OutlineWindow:
         self.d.flush()
 
     def destroy(self):
-        self.window.destroy()
-        
+        if not self._destroyed:
+            try:
+                self.window.destroy()
+                self.d.flush()
+            except:
+                pass
+            self._destroyed = True
+
+    def __del__(self):
+        if not self._destroyed:
+            self.destroy()
+
 def createOutlineWindow(w, h):
     instance = OutlineWindow(display.Display(), 0, 0, w, h)
     return instance
