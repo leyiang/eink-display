@@ -29,49 +29,73 @@ class SelectionWindow(wx.Frame):
         super().__init__(None, style=style)
         
         self.SetSize(new_width, new_height)
-        # Center the window on screen
         self.SetPosition(((screen_width - new_width)//2, (screen_height - new_height)//2))
         
-        # Store scale factor for callback
         self.scale_factor = 1/scale
+        
+        # Create panel and bind all events
+        self.panel = wx.Panel(self, size=(new_width, new_height))
+        self.panel.SetCursor(wx.Cursor(wx.CURSOR_CROSS))
+        
+        # Bind all events to panel
+        self.panel.Bind(wx.EVT_CHAR_HOOK, self.on_key)
+        self.panel.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
+        self.panel.Bind(wx.EVT_LEFT_UP, self.on_left_up)
+        self.panel.Bind(wx.EVT_MOTION, self.on_motion)
+        self.panel.Bind(wx.EVT_PAINT, self.on_paint)
         
         # Initialize selection coordinates
         self.start_pos = None
         self.current_pos = None
         self.selecting = False
         
-        # Create transparent overlay
         self.overlay = wx.Overlay()
-        
-        # Bind mouse events
-        self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
-        self.Bind(wx.EVT_LEFT_UP, self.on_left_up)
-        self.Bind(wx.EVT_MOTION, self.on_motion)
-        self.Bind(wx.EVT_PAINT, self.on_paint)
-        self.Bind(wx.EVT_CHAR_HOOK, self.on_key)
-        
-        # Store the background
         self.background = wx_image
+        self.font = wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
         
-        # Show fullscreen
+        # Create a sizer to ensure panel fills the frame
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.panel, 1, wx.EXPAND)
+        self.SetSizer(sizer)
+        
         self.ShowFullScreen(True)
         
     def on_key(self, event):
-        # Allow ESC to cancel
-        if event.GetKeyCode() == wx.WXK_ESCAPE:
-            self.Destroy()
+        key_code = event.GetKeyCode()
+        if key_code in [wx.WXK_ESCAPE, ord('Q'), ord('q')]:
+            self.selecting = False
+            if self.panel.HasCapture():
+                self.panel.ReleaseMouse()
+            wx.CallAfter(self.Destroy)
+            return
         event.Skip()
+
+    def draw_instructions(self, dc):
+        dc.SetFont(self.font)
+        dc.SetTextForeground(wx.Colour(255, 255, 255))  # White text
+        dc.SetTextBackground(wx.Colour(0, 0, 0))  # Black background
+        dc.SetBackgroundMode(wx.SOLID)
+        
+        instructions = "ESC to cancel, Click and drag to select area"
+        if self.selecting and self.start_pos and self.current_pos:
+            width = abs(self.current_pos[0] - self.start_pos[0])
+            height = abs(self.current_pos[1] - self.start_pos[1])
+            instructions = f"Selection size: {width} x {height}"
+            
+        # Draw text with background
+        dc.DrawText(instructions, 10, 10)
         
     def on_left_down(self, event):
         self.start_pos = event.GetPosition()
         self.selecting = True
-        self.CaptureMouse()
+        self.panel.CaptureMouse()
+        event.Skip()
         
     def on_left_up(self, event):
         if self.selecting:
             self.selecting = False
-            if self.HasCapture():
-                self.ReleaseMouse()
+            if self.panel.HasCapture():
+                self.panel.ReleaseMouse()
             
             # Calculate selection rectangle
             if self.start_pos and self.current_pos:
@@ -88,18 +112,20 @@ class SelectionWindow(wx.Frame):
                     self.callback(real_width, real_height)
                     
             self.Destroy()
+        event.Skip()
             
     def on_motion(self, event):
         if self.selecting:
             self.current_pos = event.GetPosition()
-            self.Refresh()
+            self.panel.Refresh()
+        event.Skip()
             
     def on_paint(self, event):
-        dc = wx.PaintDC(self)
+        dc = wx.PaintDC(self.panel)
         dc.DrawBitmap(self.background, 0, 0)
         
         if self.selecting and self.start_pos and self.current_pos:
-            dc = wx.ClientDC(self)
+            dc = wx.ClientDC(self.panel)
             odc = wx.DCOverlay(self.overlay, dc)
             odc.Clear()
             
@@ -112,4 +138,6 @@ class SelectionWindow(wx.Frame):
             dc.DrawRectangle(min(x1, x2), min(y1, y2), 
                            abs(x2 - x1), abs(y2 - y1))
             
-            del odc 
+            del odc
+        
+        self.draw_instructions(dc) 
