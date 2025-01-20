@@ -148,7 +148,7 @@ class App(wx.App):
             # 英文文本PDF中的换行,要替换成空格
             # 中文文本PDF中的换行,要替换成空字符串
 
-            text = re.sub(r'(?<=[^.!。！：:："”])\n', ' ', text)
+            text = re.sub(r'(?<=[^.!。！：:："")])\n', ' ', text)
             text = text.translate(str.maketrans({"-":  r"\-",
                                           "]":  r"\]",
                                           "\\": r"\\",
@@ -380,6 +380,8 @@ class App(wx.App):
         self.keyListener.on("scroll_lock", self.toggle_capture)
         # self.keyListener.on("print_screen", self.redrawImage)
         # "pause" key not used
+
+        self.keyListener.on("f7", self.wire.start_area_selection)
 
 def main():
     app = App()
