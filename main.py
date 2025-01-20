@@ -75,6 +75,8 @@ class App(wx.App):
         self.server = subprocess.Popen(["live-server", "./viewer", "--no-browser"], stdout=subprocess.DEVNULL)
         self.prevCursor = ""
         self.keyListener = KeyEvent()
+
+        self.thresh = 180 
         super(App, self).__init__(False)
 
     def OnInit(self):
@@ -140,7 +142,13 @@ class App(wx.App):
             print("Got clipboard: ", text)
             self.clipboard = text
             # remove all pdf newline
-            text = re.sub(r'(?<=[^.!。！：:：])\n', ' ', text)
+            text = re.sub(r'-\s*\n', '', text)
+
+            # TODO
+            # 英文文本PDF中的换行,要替换成空格
+            # 中文文本PDF中的换行,要替换成空字符串
+
+            text = re.sub(r'(?<=[^.!。！：:："”])\n', ' ', text)
             text = text.translate(str.maketrans({"-":  r"\-",
                                           "]":  r"\]",
                                           "\\": r"\\",
@@ -159,23 +167,36 @@ class App(wx.App):
                 file.close()
             self.scroll = 0
             self.updateScroll()
+            
+            # self.refreshText()
+
+    def display_image(self, image):
+        image.save("./assets/to_view.png", optimize=True)
+        subprocess.getoutput("mv ./assets/to_view.png ./viewer/res.png")
+
+    def get_bw_image(self, image):
+        fn = lambda x : 255 if x > self.thresh else 0
+        return image.convert('L').point(fn, mode='1')
 
     def updateImage(self, x, y):
-        startX = x - self.size.w 
+        startX = x - self.size.w
         startY = y - self.size.h
 
         endX = x + self.size.w
         endY = y + self.size.h
 
         screen = ImageGrab.grab(bbox=(startX, startY, endX, endY))
-        
-        fn = lambda x : 255 if x > 180 else 0
-        screen = screen.convert('L').point(fn, mode='1')
 
-        screen.save("./assets/to_view.png", optimize=True)
+        w,h = screen.size
+        bw = 3 # border width
+        rm_border = screen.crop((bw,bw,w-bw, h-bw))
+        rm_border.save("./viewer/raw.png")
+
+        bw_screen = self.get_bw_image( screen )
+        self.display_image( bw_screen )
+
         screen.close()
-        subprocess.getoutput("mv ./assets/to_view.png ./viewer/res.png")
-        print("Time: ", time.time())
+        bw_screen.close()
 
     def refreshImage(self):
         subprocess.getoutput("cp ./viewer/res.png ./viewer/tmp.png")
@@ -185,8 +206,9 @@ class App(wx.App):
         img = img.convert("L").point(fn, mode="1")
         img.save("./viewer/res.png", optimize=True)
         img.close()
-        time.sleep(.16)
-        subprocess.getoutput("mv ./viewer/tmp.png ./viewer/res.png")
+
+        time.sleep(.5)
+        subprocess.getoutput("cp ./viewer/tmp.png ./viewer/res.png")
 
 
     @debounce(.05)
@@ -198,7 +220,8 @@ class App(wx.App):
         img = img.convert("L").point(fn, mode="1")
         img.save("./viewer/res.png", optimize=True)
         img.close()
-        time.sleep(.25)
+
+        time.sleep(.5)
 
         # fn = lambda x : 1
         # img = Image.new(mode="RGB", size=(2600, 1600))
@@ -207,7 +230,8 @@ class App(wx.App):
         # img.close()
         #
         # time.sleep(.16)
-        self.toggleMode()
+        self.textMode = True
+        self.syncMode()
 
     def refresh(self):
         if self.textMode:
@@ -251,6 +275,7 @@ class App(wx.App):
             if btn in ["left", "middle"]:
                 if not self.textMode:
                     self.updateImage(x, y)
+                    self.refreshImage()
 
         def on_scroll(x, y, dx, dy):
             self.filePart -= dy
@@ -320,15 +345,33 @@ class App(wx.App):
 
         self.size.expandRatio()
         self.wire.updateSize()
-         
+
+    def expandThresh(self):
+        self.thresh += 10
+        print( self.thresh )
+
+    def toggleThresh(self):
+        if self.thresh > 150:
+            self.thresh = 120
+        else:
+            self.thresh = 180
+
+    def shrinkThresh(self):
+        self.thresh -= 10
+        print( self.thresh )
+
     def registerKeyEvents(self):
-        self.keyListener.on("left", self.scrollUp)
-        self.keyListener.on("right", self.scrollDown)
+        # self.keyListener.on("left", self.scrollUp)
+        # self.keyListener.on("right", self.scrollDown)
         # self.keyListener.on("2", self.redrawImage)
         self.keyListener.on("5", self.refresh)
 
         self.keyListener.on("[", self.shrinkCaptureRegion)
         self.keyListener.on("]", self.expandCaptureRegion)
+
+        self.keyListener.on("-", self.shrinkThresh)
+        self.keyListener.on("=", self.expandThresh)
+        self.keyListener.on("print_screen", self.toggleThresh)
 
         self.keyListener.on("9", self.shrinkRatio)
         self.keyListener.on("0", self.expandRatio)
