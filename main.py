@@ -111,8 +111,10 @@ class App(wx.App):
         self.icon.set_icon()
 
         if self.stop:
+            self.captureMode = False
             self.wire.hideWire()
         else:
+            self.captureMode = True
             self.wire.showWire()
 
     def toggleMode(self):
