@@ -41,12 +41,14 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
         return menu
 
     def set_icon(self):
-        path = "./assets/text_icon.png" if self.app.textMode else "./assets/img_icon.png"
+        path = "./assets/wrong.png" if self.app.stop else "./assets/img_icon.png"
         icon = wx.Icon(path)
         self.SetIcon(icon, "e-ink")
 
     def on_left_down(self, event):
-        self.app.toggleMode()
+        # self.app.toggleMode()
+        self.icon.setIcon()
+        self.app.toggleStop()
         self.set_icon()
 
     def on_exit(self, event):
@@ -60,9 +62,11 @@ class App(wx.App):
         self.fromFile = False
         self.config = ConfigManager()
 
-        self.textMode = (
-            self.config.get("mode", "text") == "text"
-        )
+        # self.textMode = (
+        #     self.config.get("mode", "text") == "text"
+        # )
+
+        self.textMode = False
 
         self.size = SizeManager()
         self.wire = WireManager( self.size )
@@ -76,24 +80,40 @@ class App(wx.App):
         self.prevCursor = ""
         self.keyListener = KeyEvent()
 
+        self.stop = False
+        self.icon = None
+
+
         self.thresh = 180 
         super(App, self).__init__(False)
 
     def OnInit(self):
         frame=wx.Frame(None)
         self.SetTopWindow(frame)
-        TaskBarIcon(frame, self)
+        self.icon = TaskBarIcon(frame, self)
         return True
 
     def on_exit(self):
         self.server.kill()
 
     def toggle_capture(self):
+        if self.stop:
+            return
+
         self.captureMode = not self.captureMode
         if self.captureMode:
             self.wire.showWire()
         else:
             self.wire.hideWire()
+
+    def toggleStop(self):
+        self.stop = not self.stop
+        self.icon.set_icon()
+
+        if self.stop:
+            self.wire.hideWire()
+        else:
+            self.wire.showWire()
 
     def toggleMode(self):
         self.textMode = not self.textMode
@@ -312,6 +332,7 @@ class App(wx.App):
         self.updateScroll()
 
     def shrinkCaptureRegion(self):
+        if self.stop: return
         if self.textMode: return
         if not self.captureMode: return
 
@@ -319,6 +340,7 @@ class App(wx.App):
         self.wire.updateSize()
 
     def expandCaptureRegion(self):
+        if self.stop: return
         if self.textMode: return
         if not self.captureMode: return
 
@@ -333,6 +355,7 @@ class App(wx.App):
             )
         
     def shrinkRatio(self):
+        if self.stop: return
         if self.textMode: return
         if not self.captureMode: return
 
@@ -340,6 +363,7 @@ class App(wx.App):
         self.wire.updateSize()
 
     def expandRatio(self):
+        if self.stop: return
         if self.textMode: return
         if not self.captureMode: return
 
@@ -369,15 +393,15 @@ class App(wx.App):
         self.keyListener.on("[", self.shrinkCaptureRegion)
         self.keyListener.on("]", self.expandCaptureRegion)
 
-        self.keyListener.on("-", self.shrinkThresh)
-        self.keyListener.on("=", self.expandThresh)
-        self.keyListener.on("print_screen", self.toggleThresh)
+        # self.keyListener.on("-", self.shrinkThresh)
+        # self.keyListener.on("=", self.expandThresh)
+        # self.keyListener.on("print_screen", self.toggleThresh)
 
         self.keyListener.on("9", self.shrinkRatio)
         self.keyListener.on("0", self.expandRatio)
 
         self.keyListener.on("`", self.toggle_capture)
-        self.keyListener.on("scroll_lock", self.toggle_capture)
+        self.keyListener.on("scroll_lock", self.toggleStop)
         # self.keyListener.on("print_screen", self.redrawImage)
         # "pause" key not used
 
