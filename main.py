@@ -37,6 +37,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
     def CreatePopupMenu(self):
         menu = wx.Menu()
         create_menu_item(menu, 'Toggle Capture', self.app.toggle_capture)
+        create_menu_item(menu, 'Select Area', self.app.select_area)
         create_menu_item(menu, 'Exit', self.on_exit)
         return menu
 
@@ -409,6 +410,37 @@ class App(wx.App):
 
         self.keyListener.on("f7", self.wire.start_area_selection)
 
+    def select_area(self, _event):
+        try:
+            # 使用完整路径调用系统的flameshot，限制在第一个屏幕
+            result = subprocess.run(
+                ["/usr/bin/slop", "-f", "%x %y %w %h"],
+                capture_output=True,
+                text=True,
+                timeout=30  # 30秒超时
+            )
+            
+            if result.returncode == 0 and result.stdout.strip():
+                output = result.stdout.strip()
+                print(output)
+                [x, y, w, h] = output.split(" ")
+
+                # 将字符串转换为整数，并设置为捕获区域的半宽半高
+                width = int(w) // 2
+                height = int(h) // 2
+                
+                self.size.setWidth(width)
+                self.size.setHeight(height)
+
+                self.wire.updateSize()
+                print(f"已更新捕获区域大小: {width}x{height}")
+            else:
+                print("slop选择被取消或失败")
+                if result.stderr:
+                    print(f"错误信息: {result.stderr}")
+        except Exception as e:
+            print(f"调用slop时出错: {e}")
+
 def main():
     app = App()
 
@@ -422,6 +454,7 @@ def main():
     threading.Thread(target=app.updateRegion).start()
     app.init()
     app.CheckLoop()
+
 
 if __name__ == '__main__':
     os.chdir( sys.argv[1] )
