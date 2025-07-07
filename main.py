@@ -25,6 +25,9 @@ def create_menu_item(menu, label, func):
     menu.Append(item)
     return item
 
+def notify(message, tag):
+    notify_id = {"eink-thresh": 11}[tag]
+    subprocess.run(["notify-send", "-r", str(notify_id), "E-ink Threshold", message], check=False)
 
 class TaskBarIcon(wx.adv.TaskBarIcon):
     def __init__(self, frame, app):
@@ -405,6 +408,7 @@ class App(wx.App):
     def expandThresh(self):
         self.thresh += 10
         print( self.thresh )
+        notify(f"Threshold: {self.thresh} (+10)", "eink-thresh")
         self.reprocess_with_thresh()
         # Update status for interactive display
         self.pipe_manager.write_status(f"thresh:{self.thresh}")
@@ -415,14 +419,15 @@ class App(wx.App):
         else:
             self.thresh = 180
         print( self.thresh )
+        notify(f"Threshold: {self.thresh} (toggled)", "eink-thresh")
         self.reprocess_with_thresh()
         # Update status for interactive display
         self.pipe_manager.write_status(f"thresh:{self.thresh}")
 
     def shrinkThresh(self):
         self.thresh -= 10
-        subprocess.run(["notify-send", str(self.thresh)])
         print( self.thresh )
+        notify(f"Threshold: {self.thresh} (-10)", "eink-thresh")
         self.reprocess_with_thresh()
         # Update status for interactive display
         self.pipe_manager.write_status(f"thresh:{self.thresh}")
@@ -436,9 +441,10 @@ class App(wx.App):
         self.keyListener.on("[", self.shrinkCaptureRegion)
         self.keyListener.on("]", self.expandCaptureRegion)
 
-        self.keyListener.on("-", self.shrinkThresh)
-        self.keyListener.on("=", self.expandThresh)
-        self.keyListener.on("print_screen", self.toggleThresh)
+        # 主要用rofi+pipe来修改了，不用键盘了（太容易冲突）
+        # self.keyListener.on("-", self.shrinkThresh)
+        # self.keyListener.on("=", self.expandThresh)
+        # self.keyListener.on("print_screen", self.toggleThresh)
 
         self.keyListener.on("9", self.shrinkRatio)
         self.keyListener.on("0", self.expandRatio)
@@ -486,7 +492,7 @@ class App(wx.App):
     def open_rofi_menu(self):
         """打开rofi设置菜单"""
         try:
-            script_path = os.path.join(os.getcwd(), "eink_rofi_interactive.sh")
+            script_path = os.path.join(os.getcwd(), "eink_rofi_interactive.py")
             subprocess.Popen([script_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
             print(f"打开rofi菜单时出错: {e}")
