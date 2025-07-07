@@ -9,14 +9,13 @@ import wx
 import threading
 import pyperclip
 import time
-import stat
-import select
 from pynput.mouse import Listener
 from PIL import ImageGrab, Image
 from modules.ConfigManager import ConfigManager
 from modules.KeyEvent import KeyEvent
 from modules.SizeManager import SizeManager
 from modules.WireManager import WireManager
+from modules.PipeManager import PipeManager
 from modules.mouse import getCursorInfo
 from modules.utils import debounce
 
@@ -89,8 +88,7 @@ class App(wx.App):
         self.thresh = 180
         self.x = 0
         self.y = 0
-        self.pipe_path = "/tmp/eink_control"
-        self.status_path = "/tmp/eink_status"
+        self.pipe_manager = PipeManager()
         super(App, self).__init__(False)
 
     def OnInit(self):
@@ -101,11 +99,9 @@ class App(wx.App):
 
     def on_exit(self):
         self.server.kill()
-        # Clean up named pipes
-        if os.path.exists(self.pipe_path):
-            os.unlink(self.pipe_path)
-        if os.path.exists(self.status_path):
-            os.unlink(self.status_path)
+        # Clean up pipes
+        self.pipe_manager.stop_listening()
+        self.pipe_manager.cleanup_pipes()
 
     def toggle_capture(self):
         if self.stop:
@@ -335,6 +331,7 @@ class App(wx.App):
     def init(self):
         self.syncMode()
         self.registerKeyEvents()
+        self.setup_pipe_commands()
     
     def scrollUp(self):
         self.scroll = max(0, self.scroll-1 )
@@ -410,7 +407,7 @@ class App(wx.App):
         print( self.thresh )
         self.reprocess_with_thresh()
         # Update status for interactive display
-        self.write_status(f"thresh:{self.thresh}")
+        self.pipe_manager.write_status(f"thresh:{self.thresh}")
 
     def toggleThresh(self):
         if self.thresh > 150:
@@ -420,7 +417,7 @@ class App(wx.App):
         print( self.thresh )
         self.reprocess_with_thresh()
         # Update status for interactive display
-        self.write_status(f"thresh:{self.thresh}")
+        self.pipe_manager.write_status(f"thresh:{self.thresh}")
 
     def shrinkThresh(self):
         self.thresh -= 10
@@ -428,7 +425,7 @@ class App(wx.App):
         print( self.thresh )
         self.reprocess_with_thresh()
         # Update status for interactive display
-        self.write_status(f"thresh:{self.thresh}")
+        self.pipe_manager.write_status(f"thresh:{self.thresh}")
 
     def registerKeyEvents(self):
         # self.keyListener.on("left", self.scrollUp)
@@ -571,32 +568,35 @@ class App(wx.App):
 
     def get_thresh(self):
         """获取当前阈值"""
-        self.write_status(f"thresh:{self.thresh}")
+        self.pipe_manager.write_status(f"thresh:{self.thresh}")
     
     def get_size(self):
         """获取当前大小"""
-        self.write_status(f"size:{self.size.w}x{self.size.h}")
+        self.pipe_manager.write_status(f"size:{self.size.w}x{self.size.h}")
     
     def get_ratio(self):
         """获取当前比例"""
-        self.write_status(f"ratio:{self.size.ratio}")
+        self.pipe_manager.write_status(f"ratio:{self.size.ratio}")
     
-    def write_status(self, status):
-        """写入状态信息到状态管道（非阻塞）"""
-        try:
-            # Use non-blocking write to avoid hanging if no reader
-            fd = os.open(self.status_path, os.O_WRONLY | os.O_NONBLOCK)
-            os.write(fd, (status + '\n').encode('utf-8'))
-            os.close(fd)
-        except OSError as e:
-            if e.errno == 32:  # EPIPE - broken pipe (no reader)
-                pass  # Silently ignore if no reader is waiting
-            elif e.errno == 11:  # EAGAIN - would block
-                pass  # Silently ignore if would block
-            else:
-                print(f"Error writing status: {e}")
-        except Exception as e:
-            print(f"Error writing status: {e}")
+    def setup_pipe_commands(self):
+        """设置管道命令处理器"""
+        command_map = {
+            "thresh_up": self.expandThresh,
+            "thresh_down": self.shrinkThresh,
+            "thresh_toggle": self.toggleThresh,
+            "size_up": self.expandCaptureRegion,
+            "size_down": self.shrinkCaptureRegion,
+            "ratio_up": self.expandRatio,
+            "ratio_down": self.shrinkRatio,
+            "toggle_capture": self.toggle_capture,
+            "toggle_stop": self.toggleStop,
+            "refresh": self.refresh,
+            "select_area": lambda: self.select_area(None),
+            "get_thresh": self.get_thresh,
+            "get_size": self.get_size,
+            "get_ratio": self.get_ratio
+        }
+        self.pipe_manager.register_commands(command_map)
 
 def main():
     app = App()
@@ -611,10 +611,10 @@ def main():
     threading.Thread(target=app.updateRegion).start()
     
     # Create command pipe and start command listener
-    app.create_command_pipe()
-    threading.Thread(target=app.listen_for_commands, daemon=True).start()
-    
+    app.pipe_manager.create_pipes()
     app.init()
+    app.pipe_manager.start_listening()
+    
     app.CheckLoop()
 
 
