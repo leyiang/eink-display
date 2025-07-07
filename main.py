@@ -9,6 +9,8 @@ import wx
 import threading
 import pyperclip
 import time
+import stat
+import select
 from pynput.mouse import Listener
 from PIL import ImageGrab, Image
 from modules.ConfigManager import ConfigManager
@@ -84,10 +86,11 @@ class App(wx.App):
         self.stop = False
         self.icon = None
 
-
         self.thresh = 180
         self.x = 0
         self.y = 0
+        self.pipe_path = "/tmp/eink_control"
+        self.status_path = "/tmp/eink_status"
         super(App, self).__init__(False)
 
     def OnInit(self):
@@ -98,6 +101,11 @@ class App(wx.App):
 
     def on_exit(self):
         self.server.kill()
+        # Clean up named pipes
+        if os.path.exists(self.pipe_path):
+            os.unlink(self.pipe_path)
+        if os.path.exists(self.status_path):
+            os.unlink(self.status_path)
 
     def toggle_capture(self):
         if self.stop:
@@ -364,17 +372,22 @@ class App(wx.App):
     
     def reprocess_with_thresh(self):
         """重新处理现有图像，使用当前阈值"""
-        if not self.textMode:
-            try:
-                # 从保存的原图重新应用阈值
-                raw_image = Image.open("./viewer/raw.png")
-                bw_image = self.get_bw_image(raw_image)
-                self.display_image(bw_image)
-                raw_image.close()
-                bw_image.close()
-            except FileNotFoundError:
-                # 如果没有原图，则重新捕获
-                self.redrawImage()
+        try:
+            # 从保存的原图重新应用阈值
+            raw_image = Image.open("./viewer/raw.png")
+            bw_image = self.get_bw_image(raw_image)
+            self.display_image(bw_image)
+            raw_image.close()
+            bw_image.close()
+            print(f"Reprocessed image with threshold: {self.thresh}")
+        except FileNotFoundError:
+            print("No raw image found, capturing new image")
+            # 如果没有原图，则重新捕获
+            self.redrawImage()
+        except Exception as e:
+            print(f"Error reprocessing image: {e}")
+            # 如果处理失败，尝试重新捕获
+            self.redrawImage()
         
     def shrinkRatio(self):
         if self.stop: return
@@ -396,6 +409,8 @@ class App(wx.App):
         self.thresh += 10
         print( self.thresh )
         self.reprocess_with_thresh()
+        # Update status for interactive display
+        self.write_status(f"thresh:{self.thresh}")
 
     def toggleThresh(self):
         if self.thresh > 150:
@@ -404,11 +419,16 @@ class App(wx.App):
             self.thresh = 180
         print( self.thresh )
         self.reprocess_with_thresh()
+        # Update status for interactive display
+        self.write_status(f"thresh:{self.thresh}")
 
     def shrinkThresh(self):
         self.thresh -= 10
+        subprocess.run(["notify-send", str(self.thresh)])
         print( self.thresh )
         self.reprocess_with_thresh()
+        # Update status for interactive display
+        self.write_status(f"thresh:{self.thresh}")
 
     def registerKeyEvents(self):
         # self.keyListener.on("left", self.scrollUp)
@@ -433,6 +453,7 @@ class App(wx.App):
         # "pause" key not used
 
         self.keyListener.on("f7", self.wire.start_area_selection)
+        self.keyListener.on("f8", self.open_rofi_menu)
 
     def select_area(self, _event):
         try:
@@ -465,6 +486,118 @@ class App(wx.App):
         except Exception as e:
             print(f"调用slop时出错: {e}")
 
+    def open_rofi_menu(self):
+        """打开rofi设置菜单"""
+        try:
+            script_path = os.path.join(os.getcwd(), "eink_rofi_interactive.sh")
+            subprocess.Popen([script_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as e:
+            print(f"打开rofi菜单时出错: {e}")
+
+    def create_command_pipe(self):
+        """创建命名管道用于接收rofi命令"""
+        if os.path.exists(self.pipe_path):
+            os.unlink(self.pipe_path)
+        if os.path.exists(self.status_path):
+            os.unlink(self.status_path)
+        os.mkfifo(self.pipe_path)
+        os.mkfifo(self.status_path)
+        print(f"Created command pipe: {self.pipe_path}")
+        print(f"Created status pipe: {self.status_path}")
+
+    def listen_for_commands(self):
+        """监听来自命名管道的命令"""
+        pipe_fd = None
+        try:
+            # Open pipe once outside the loop
+            pipe_fd = os.open(self.pipe_path, os.O_RDONLY | os.O_NONBLOCK)
+            print(f"Opened pipe for listening: {self.pipe_path}")
+            
+            while True:
+                try:
+                    # Use select to check if data is available
+                    ready, _, _ = select.select([pipe_fd], [], [], 0.1)
+                    if ready:
+                        data = os.read(pipe_fd, 1024).decode('utf-8')
+                        if data:
+                            # Process each line as a separate command
+                            for line in data.strip().split('\n'):
+                                command = line.strip()
+                                if command:
+                                    self.process_command(command)
+                    time.sleep(0.01)  # Very short sleep for responsiveness
+                    
+                except OSError as e:
+                    if e.errno == 11:  # EAGAIN - no data available
+                        time.sleep(0.1)
+                        continue
+                    else:
+                        raise e
+                        
+        except Exception as e:
+            print(f"Error in command listener: {e}")
+        finally:
+            if pipe_fd is not None:
+                try:
+                    os.close(pipe_fd)
+                    print("Closed command pipe")
+                except:
+                    pass
+
+    def process_command(self, command):
+        """处理接收到的命令"""
+        print(f"Received command: {command}")
+        command_map = {
+            "thresh_up": self.expandThresh,
+            "thresh_down": self.shrinkThresh,
+            "thresh_toggle": self.toggleThresh,
+            "size_up": self.expandCaptureRegion,
+            "size_down": self.shrinkCaptureRegion,
+            "ratio_up": self.expandRatio,
+            "ratio_down": self.shrinkRatio,
+            "toggle_capture": self.toggle_capture,
+            "toggle_stop": self.toggleStop,
+            "refresh": self.refresh,
+            "select_area": lambda: self.select_area(None),
+            "get_thresh": self.get_thresh,
+            "get_size": self.get_size,
+            "get_ratio": self.get_ratio
+        }
+        
+        if command in command_map:
+            command_map[command]()
+        else:
+            print(f"Unknown command: {command}")
+
+    def get_thresh(self):
+        """获取当前阈值"""
+        self.write_status(f"thresh:{self.thresh}")
+    
+    def get_size(self):
+        """获取当前大小"""
+        self.write_status(f"size:{self.size.w}x{self.size.h}")
+    
+    def get_ratio(self):
+        """获取当前比例"""
+        self.write_status(f"ratio:{self.size.ratio}")
+    
+    def write_status(self, status):
+        """写入状态信息到状态管道（非阻塞）"""
+        try:
+            # Use non-blocking write to avoid hanging if no reader
+            fd = os.open(self.status_path, os.O_WRONLY | os.O_NONBLOCK)
+            os.write(fd, (status + '\n').encode('utf-8'))
+            os.close(fd)
+        except OSError as e:
+            if e.errno == 32:  # EPIPE - broken pipe (no reader)
+                pass  # Silently ignore if no reader is waiting
+            elif e.errno == 11:  # EAGAIN - would block
+                pass  # Silently ignore if would block
+            else:
+                print(f"Error writing status: {e}")
+        except Exception as e:
+            print(f"Error writing status: {e}")
+
 def main():
     app = App()
 
@@ -476,6 +609,11 @@ def main():
     threading.Thread(target=app.MainLoop).start()
     threading.Thread(target=app.listenScroll).start()
     threading.Thread(target=app.updateRegion).start()
+    
+    # Create command pipe and start command listener
+    app.create_command_pipe()
+    threading.Thread(target=app.listen_for_commands, daemon=True).start()
+    
     app.init()
     app.CheckLoop()
 
