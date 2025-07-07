@@ -85,7 +85,9 @@ class App(wx.App):
         self.icon = None
 
 
-        self.thresh = 180 
+        self.thresh = 180
+        self.x = 0
+        self.y = 0
         super(App, self).__init__(False)
 
     def OnInit(self):
@@ -352,10 +354,27 @@ class App(wx.App):
 
     def redrawImage(self):
         if not self.textMode:
-            self.updateImage(
-                self.x,
-                self.y,
-            )
+            if hasattr(self, 'x') and hasattr(self, 'y'):
+                self.updateImage(self.x, self.y)
+            else:
+                info = getCursorInfo()
+                if info:
+                    x, y = info
+                    self.updateImage(x, y)
+    
+    def reprocess_with_thresh(self):
+        """重新处理现有图像，使用当前阈值"""
+        if not self.textMode:
+            try:
+                # 从保存的原图重新应用阈值
+                raw_image = Image.open("./viewer/raw.png")
+                bw_image = self.get_bw_image(raw_image)
+                self.display_image(bw_image)
+                raw_image.close()
+                bw_image.close()
+            except FileNotFoundError:
+                # 如果没有原图，则重新捕获
+                self.redrawImage()
         
     def shrinkRatio(self):
         if self.stop: return
@@ -376,16 +395,20 @@ class App(wx.App):
     def expandThresh(self):
         self.thresh += 10
         print( self.thresh )
+        self.reprocess_with_thresh()
 
     def toggleThresh(self):
         if self.thresh > 150:
             self.thresh = 120
         else:
             self.thresh = 180
+        print( self.thresh )
+        self.reprocess_with_thresh()
 
     def shrinkThresh(self):
         self.thresh -= 10
         print( self.thresh )
+        self.reprocess_with_thresh()
 
     def registerKeyEvents(self):
         # self.keyListener.on("left", self.scrollUp)
@@ -396,9 +419,9 @@ class App(wx.App):
         self.keyListener.on("[", self.shrinkCaptureRegion)
         self.keyListener.on("]", self.expandCaptureRegion)
 
-        # self.keyListener.on("-", self.shrinkThresh)
-        # self.keyListener.on("=", self.expandThresh)
-        # self.keyListener.on("print_screen", self.toggleThresh)
+        self.keyListener.on("-", self.shrinkThresh)
+        self.keyListener.on("=", self.expandThresh)
+        self.keyListener.on("print_screen", self.toggleThresh)
 
         self.keyListener.on("9", self.shrinkRatio)
         self.keyListener.on("0", self.expandRatio)
