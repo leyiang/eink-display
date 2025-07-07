@@ -18,7 +18,7 @@ class KeyEvent():
             k = key.name  # other keys
 
         current_time = time.time()
-        
+
         # Handle double tap detection
         if k in self.doubleTapMaps:
             if k in self.lastKeyTime:
@@ -30,7 +30,7 @@ class KeyEvent():
                     # Reset the timer to prevent triple tap
                     self.lastKeyTime[k] = 0
                     return
-            
+
             self.lastKeyTime[k] = current_time
 
         if k in self.keyMaps:
@@ -38,17 +38,17 @@ class KeyEvent():
 
             for callback in self.keyMaps[k]:
                 callback()
-    
+
     def on(self, key, callback):
         if key not in self.keyMaps:
             self.keyMaps[key] = []
         self.keyMaps[key].append( callback )
-    
+
     def onDoubleTap(self, key, callback):
         if key not in self.doubleTapMaps:
             self.doubleTapMaps[key] = []
         self.doubleTapMaps[key].append( callback )
-    
+
     def listen(self):
         listener = keyboard.Listener(on_press=self.on_press)
         listener.start()

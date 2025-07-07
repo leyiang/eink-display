@@ -19,15 +19,15 @@ from RofiHelper import RofiHelper
 
 class EinkRofiMenu:
     """E-ink设备的Rofi交互菜单"""
-    
+
     def __init__(self, pipe_path: str = "/tmp/eink_control"):
         self.pipe_path = pipe_path
         self.rofi = RofiHelper()
-        
+
     def check_app_running(self) -> bool:
         """检查e-ink应用是否正在运行"""
         return os.path.exists(self.pipe_path)
-    
+
     def send_command(self, command: str) -> None:
         """发送命令到e-ink应用"""
         try:
@@ -36,27 +36,27 @@ class EinkRofiMenu:
                 pipe.flush()
         except Exception as e:
             print(f"Error sending command '{command}': {e}")
-    
-    
+
+
     def adjust_threshold(self) -> None:
         """交互式阈值调整"""
         last_selected = 1  # 默认选中增加
-        
+
         while True:
             options = [
                 "🔧 Threshold Settings",
                 "➕ Increase (+10)",
-                "➖ Decrease (-10)", 
+                "➖ Decrease (-10)",
                 "🔄 Toggle (120/180)",
                 "↩️ Back to Main Menu"
             ]
-            
+
             choice = self.rofi.show_interactive_menu(
                 options=options,
                 selected_row=last_selected,
                 prompt="Threshold Adjustment"
             )
-            
+
             if not choice or choice in ["↩️ Back to Main Menu", ""]:
                 break
             elif choice == "➕ Increase (+10)":
@@ -68,11 +68,11 @@ class EinkRofiMenu:
             elif choice == "🔄 Toggle (120/180)":
                 self.send_command("thresh_toggle")
                 last_selected = 3
-    
+
     def adjust_size(self) -> None:
         """交互式大小调整"""
         last_selected = 1
-        
+
         while True:
             options = [
                 "📏 Size Settings",
@@ -80,13 +80,13 @@ class EinkRofiMenu:
                 "➖ Decrease Size",
                 "↩️ Back to Main Menu"
             ]
-            
+
             choice = self.rofi.show_interactive_menu(
                 options=options,
                 selected_row=last_selected,
                 prompt="Size Adjustment"
             )
-            
+
             if not choice or choice in ["↩️ Back to Main Menu", ""]:
                 break
             elif choice == "➕ Increase Size":
@@ -95,11 +95,11 @@ class EinkRofiMenu:
             elif choice == "➖ Decrease Size":
                 self.send_command("size_down")
                 last_selected = 2
-    
+
     def adjust_ratio(self) -> None:
         """交互式比例调整"""
         last_selected = 1
-        
+
         while True:
             options = [
                 "📐 Ratio Settings",
@@ -107,13 +107,13 @@ class EinkRofiMenu:
                 "➖ Decrease Ratio",
                 "↩️ Back to Main Menu"
             ]
-            
+
             choice = self.rofi.show_interactive_menu(
                 options=options,
                 selected_row=last_selected,
                 prompt="Ratio Adjustment"
             )
-            
+
             if not choice or choice in ["↩️ Back to Main Menu", ""]:
                 break
             elif choice == "➕ Increase Ratio":
@@ -122,13 +122,13 @@ class EinkRofiMenu:
             elif choice == "➖ Decrease Ratio":
                 self.send_command("ratio_down")
                 last_selected = 2
-    
+
     def run_main_menu(self) -> None:
         """运行主菜单"""
         while True:
             options = [
                 "🔧 Adjust Threshold (Interactive)",
-                "📏 Adjust Size (Interactive)", 
+                "📏 Adjust Size (Interactive)",
                 "📐 Adjust Ratio (Interactive)",
                 "🎯 Toggle Capture Mode",
                 "⏸️ Toggle Stop/Start",
@@ -136,12 +136,12 @@ class EinkRofiMenu:
                 "🖱️ Select Area (slop)",
                 "❌ Exit"
             ]
-            
+
             choice = self.rofi.show_main_menu(
                 options=options,
                 prompt="E-ink Settings"
             )
-            
+
             if not choice or choice in ["❌ Exit", ""]:
                 break
             elif choice == "🔧 Adjust Threshold (Interactive)":
@@ -163,12 +163,12 @@ class EinkRofiMenu:
 def main():
     """主函数"""
     menu = EinkRofiMenu()
-    
+
     # 检查应用是否运行
     if not menu.check_app_running():
         menu.rofi.show_error("E-ink app is not running or pipe not found!")
         sys.exit(1)
-    
+
     # 运行主菜单
     menu.run_main_menu()
 

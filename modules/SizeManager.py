@@ -30,13 +30,13 @@ class SizeManager():
 
     def expand(self, step=0):
         self.updateWidth(1, step)
-    
+
     def setWidth(self, width):
         """直接设置宽度"""
         self.w = int(width)
         self.updateHeight()
         self.config.update("init_width", self.w)
-    
+
     def setHeight(self, height):
         """直接设置高度，会根据高度反推比例"""
         height = int(height)

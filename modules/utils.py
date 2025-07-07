@@ -9,12 +9,12 @@ def debounce(wait):
             nonlocal timer
             def call_it():
                 fn(*args, **kwargs)
-            
+
             if timer is not None:
                 timer.cancel()
-            
+
             timer = threading.Timer(wait, call_it)
             timer.start()
-        
+
         return debounced
     return decorator

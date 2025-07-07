@@ -23,7 +23,7 @@ def clipboard():
     # Get password and text from query string
     password = request.args.get('password')
     text = request.args.get('text')
-    
+
     # Check if password is provided and correct
     if not password or password != PASSWORD:
         return jsonify({"error": "Unauthorized"}), 401

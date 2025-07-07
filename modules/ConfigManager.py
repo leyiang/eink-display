@@ -16,7 +16,7 @@ class ConfigManager():
             return self.config[key]
         else:
             return defaultValue
-        
+
     def update(self, key, val):
         if key not in self.config: return
         self.config[key] = val

@@ -11,7 +11,7 @@ from modules.mouse import getCursorInfo
 class OutlineWindow:
     def __init__(self, display, x, y, w, h, lw=3):
         self.w = w
-        self.h =h 
+        self.h =h
 
         self.d = display
         self.screen = self.d.screen()
@@ -28,7 +28,7 @@ class OutlineWindow:
             background=self.screen.black_pixel
         )
 
-        # we fill the pixel map with red 
+        # we fill the pixel map with red
         bgpm.fill_rectangle(bggc, 0, 0, 1, 1)
         geometry = self.screen.root.get_geometry()
 

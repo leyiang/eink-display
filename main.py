@@ -191,7 +191,7 @@ class App(wx.App):
             segs = text.split("\n")
             for i in range(len(segs)):
                 segs[i] = f'"<p>{ segs[i] }</p>"'
-            
+
             raw = "\n\n +".join(segs)
             output = f'var content = {raw}'
             with open("./viewer/content.js", "w") as file:
@@ -199,7 +199,7 @@ class App(wx.App):
                 file.close()
             self.scroll = 0
             self.updateScroll()
-            
+
             # self.refreshText()
 
     def display_image(self, image):
@@ -284,7 +284,7 @@ class App(wx.App):
         self.x = x
         self.y = y
         self.updateImage(x, y)
-        
+
     def CheckLoop(self):
         while True:
             if not self.captureMode:
@@ -314,7 +314,7 @@ class App(wx.App):
 
         with Listener(on_scroll=on_scroll, on_click=on_click) as listener:
             listener.join()
-        
+
     def updateScroll(self):
         with open("./viewer/scroll.js", "w") as file:
             output = f"var scroll = {self.scroll};";
@@ -330,12 +330,12 @@ class App(wx.App):
                     if self.wire and self.wire.wire:
                         self.wire.wire.updatePos(x, y)
             time.sleep(0.01)
-        
+
     def init(self):
         self.syncMode()
         self.registerKeyEvents()
         self.setup_pipe_commands()
-    
+
     def scrollUp(self):
         self.scroll = max(0, self.scroll-1 )
         self.updateScroll()
@@ -369,7 +369,7 @@ class App(wx.App):
                 if info:
                     x, y = info
                     self.updateImage(x, y)
-    
+
     def reprocess_with_thresh(self):
         """重新处理现有图像，使用当前阈值"""
         try:
@@ -388,7 +388,7 @@ class App(wx.App):
             print(f"Error reprocessing image: {e}")
             # 如果处理失败，尝试重新捕获
             self.redrawImage()
-        
+
     def shrinkRatio(self):
         if self.stop: return
         if self.textMode: return
@@ -467,7 +467,7 @@ class App(wx.App):
                 text=True,
                 timeout=30  # 30秒超时
             )
-            
+
             if result.returncode == 0 and result.stdout.strip():
                 output = result.stdout.strip()
                 print(output)
@@ -476,7 +476,7 @@ class App(wx.App):
                 # 将字符串转换为整数，并设置为捕获区域的半宽半高
                 width = int(w) // 2
                 height = int(h) // 2
-                
+
                 self.size.setWidth(width)
                 self.size.setHeight(height)
 
@@ -515,7 +515,7 @@ class App(wx.App):
             # Open pipe once outside the loop
             pipe_fd = os.open(self.pipe_path, os.O_RDONLY | os.O_NONBLOCK)
             print(f"Opened pipe for listening: {self.pipe_path}")
-            
+
             while True:
                 try:
                     # Use select to check if data is available
@@ -529,14 +529,14 @@ class App(wx.App):
                                 if command:
                                     self.process_command(command)
                     time.sleep(0.01)  # Very short sleep for responsiveness
-                    
+
                 except OSError as e:
                     if e.errno == 11:  # EAGAIN - no data available
                         time.sleep(0.1)
                         continue
                     else:
                         raise e
-                        
+
         except Exception as e:
             print(f"Error in command listener: {e}")
         finally:
@@ -566,7 +566,7 @@ class App(wx.App):
             "get_size": self.get_size,
             "get_ratio": self.get_ratio
         }
-        
+
         if command in command_map:
             command_map[command]()
         else:
@@ -575,15 +575,15 @@ class App(wx.App):
     def get_thresh(self):
         """获取当前阈值"""
         self.pipe_manager.write_status(f"thresh:{self.thresh}")
-    
+
     def get_size(self):
         """获取当前大小"""
         self.pipe_manager.write_status(f"size:{self.size.w}x{self.size.h}")
-    
+
     def get_ratio(self):
         """获取当前比例"""
         self.pipe_manager.write_status(f"ratio:{self.size.ratio}")
-    
+
     def setup_pipe_commands(self):
         """设置管道命令处理器"""
         command_map = {
@@ -615,12 +615,12 @@ def main():
     threading.Thread(target=app.MainLoop).start()
     threading.Thread(target=app.listenScroll).start()
     threading.Thread(target=app.updateRegion).start()
-    
+
     # Create command pipe and start command listener
     app.pipe_manager.create_pipes()
     app.init()
     app.pipe_manager.start_listening()
-    
+
     app.CheckLoop()
 
 

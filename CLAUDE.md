@@ -37,7 +37,7 @@ make install
 ### Application Flow
 
 1. **Initialization**: Creates system tray icon, starts live-server for viewer, initializes configuration
-2. **Capture Modes**: 
+2. **Capture Modes**:
    - Image mode: Captures screen region around cursor, converts to black/white
    - Text mode: Processes clipboard content, formats for display
 3. **Display**: Web-based viewer (viewer/) displays captured content
