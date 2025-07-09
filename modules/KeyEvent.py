@@ -7,8 +7,10 @@ class KeyEvent():
         threading.Thread(target=self.listen).start()
         self.keyMaps = {}
         self.doubleTapMaps = {}
+        self.comboMaps = {}
         self.lastKeyTime = {}
         self.doubleTapWindow = 0.3  # 300ms window for double tap
+        self.pressed_keys = set()
         pass
 
     def on_press(self, key):
@@ -17,7 +19,16 @@ class KeyEvent():
         except:
             k = key.name  # other keys
 
+        self.pressed_keys.add(k)
+        
         current_time = time.time()
+
+        # Handle combo keys
+        for combo_key, callbacks in self.comboMaps.items():
+            if self.is_combo_pressed(combo_key):
+                print(f"Combo pressed: {combo_key}")
+                for callback in callbacks:
+                    callback()
 
         # Handle double tap detection
         if k in self.doubleTapMaps:
@@ -39,6 +50,23 @@ class KeyEvent():
             for callback in self.keyMaps[k]:
                 callback()
 
+    def on_release(self, key):
+        try:
+            k = key.char  # single-char keys
+        except:
+            k = key.name  # other keys
+
+        self.pressed_keys.discard(k)
+
+    def is_combo_pressed(self, combo_key):
+        """Check if a combo key is pressed"""
+        keys = combo_key.split("+")
+        for key in keys:
+            key = key.strip()
+            if key not in self.pressed_keys:
+                return False
+        return True
+
     def on(self, key, callback):
         if key not in self.keyMaps:
             self.keyMaps[key] = []
@@ -49,7 +77,12 @@ class KeyEvent():
             self.doubleTapMaps[key] = []
         self.doubleTapMaps[key].append( callback )
 
+    def onCombo(self, combo_key, callback):
+        if combo_key not in self.comboMaps:
+            self.comboMaps[combo_key] = []
+        self.comboMaps[combo_key].append( callback )
+
     def listen(self):
-        listener = keyboard.Listener(on_press=self.on_press)
+        listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
         listener.start()
         listener.join()
