@@ -32,7 +32,7 @@ class MouseMagnet:
         self.capture_mode_check = capture_mode_check
         self.dead_zone = dead_zone
         self.scroll_pause_time = 0
-        self.scroll_pause_duration = 0.2  # 滚轮操作后暂停磁力0.2秒
+        self.scroll_pause_duration = 0.5  # 滚轮操作后暂停磁力0.5秒
         self.mouse_listener = None
         
         # 获取单个显示器尺寸
@@ -167,9 +167,7 @@ class MouseMagnet:
         """启动磁铁效果"""
         if not self.running:
             self.running = True
-            # 启动鼠标监听器来检测滚轮事件
-            self.mouse_listener = mouse.Listener(on_scroll=self.on_scroll)
-            self.mouse_listener.start()
+            # 不再启动独立的鼠标监听器，由主程序处理滚动事件
             self.magnet_thread = threading.Thread(target=self.magnet_loop, daemon=True)
             self.magnet_thread.start()
             print("鼠标磁铁效果已启动")
@@ -178,8 +176,6 @@ class MouseMagnet:
     def stop(self):
         """停止磁铁效果"""
         self.running = False
-        if self.mouse_listener:
-            self.mouse_listener.stop()
         print("鼠标磁铁效果已停止")
 
 

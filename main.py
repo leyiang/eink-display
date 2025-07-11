@@ -386,6 +386,9 @@ class App(wx.App):
                     self.updateImageWithRefresh(x, y)
 
         def on_scroll(x, y, dx, dy):
+            # 通知磁性系统暂停
+            if hasattr(self, 'mouse_magnet') and self.mouse_magnet:
+                self.mouse_magnet.on_scroll(x, y, dx, dy)
             self.filePart -= dy
 
         with Listener(on_scroll=on_scroll, on_click=on_click) as listener:
