@@ -43,6 +43,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
         menu = wx.Menu()
         create_menu_item(menu, 'Toggle Capture', self.app.toggle_capture)
         create_menu_item(menu, 'Select Area', self.app.select_area)
+        create_menu_item(menu, 'Clear Magnet', self.app.clear_magnet)
         create_menu_item(menu, 'Exit', self.on_exit)
         return menu
 
@@ -163,7 +164,10 @@ class App(wx.App):
         
         # 如果磁铁不存在，创建新的磁铁
         if self.mouse_magnet is None:
-            self.mouse_magnet = MouseMagnet(magnet_positions=[current_x])
+            self.mouse_magnet = MouseMagnet(
+                magnet_positions=[current_x],
+                capture_mode_check=lambda: self.captureMode
+            )
             self.mouse_magnet.start()
             print(f"鼠标磁铁已启动，初始位置X={current_x}")
         else:
@@ -178,6 +182,14 @@ class App(wx.App):
             print("鼠标磁铁已停止，所有磁铁位置已清除")
         else:
             print("鼠标磁铁未运行")
+
+    def clear_magnet(self, _event=None):
+        """清除所有磁铁位置（托盘菜单回调）"""
+        if self.mouse_magnet:
+            self.mouse_magnet.clear_magnet_positions()
+            print("已清除所有磁铁位置")
+        else:
+            print("鼠标磁铁未运行，无需清除")
 
     def getText(self):
         text = ""
@@ -522,6 +534,7 @@ class App(wx.App):
 
         self.keyListener.on("f7", self.wire.start_area_selection)
         self.keyListener.on("f8", self.open_rofi_menu)
+        self.keyListener.onCombo("alt + M", self.start_magnet)
 
     def select_area(self, _event):
         try:

@@ -12,7 +12,7 @@ import tkinter as tk
 
 
 class MouseMagnet:
-    def __init__(self, magnet_positions=None, magnet_radius=200, force_strength=0.3, update_interval=0.01):
+    def __init__(self, magnet_positions=None, magnet_radius=200, force_strength=0.3, update_interval=0.01, capture_mode_check=None):
         """
         初始化鼠标磁铁
         
@@ -21,12 +21,14 @@ class MouseMagnet:
             magnet_radius: 磁力作用半径（像素）
             force_strength: 磁力强度（0-1之间）
             update_interval: 更新间隔（秒）
+            capture_mode_check: 检查是否为捕获模式的回调函数
         """
         self.magnet_radius = magnet_radius
         self.force_strength = force_strength
         self.update_interval = update_interval
         self.running = False
         self.mouse_controller = mouse.Controller()
+        self.capture_mode_check = capture_mode_check
         
         # 获取单个显示器尺寸
         self.screen_width = self._get_screen_width()
@@ -95,6 +97,10 @@ class MouseMagnet:
     def apply_magnet_force(self):
         """应用磁铁效果（仅X轴，支持多个磁铁位置）"""
         if not self.magnet_positions:
+            return
+        
+        # 检查是否为捕获模式，如果不是则不应用磁力
+        if self.capture_mode_check and not self.capture_mode_check():
             return
         
         current_pos = self.mouse_controller.position
