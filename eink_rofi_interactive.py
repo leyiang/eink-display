@@ -128,6 +128,8 @@ class EinkRofiMenu:
         while True:
             options = [
                 "🔧 Adjust Threshold (Interactive)",
+                "🧲 Start Magnet",
+                "🚫 Stop Magnet",
                 "📏 Adjust Size (Interactive)",
                 "📐 Adjust Ratio (Interactive)",
                 "🎯 Toggle Capture Mode",
@@ -144,6 +146,12 @@ class EinkRofiMenu:
 
             if not choice or choice in ["❌ Exit", ""]:
                 break
+            elif choice == "🧲 Start Magnet":
+                self.send_command("start_magnet")
+                break  # 退出菜单
+            elif choice == "🚫 Stop Magnet":
+                self.send_command("stop_magnet")
+                break  # 退出菜单
             elif choice == "🔧 Adjust Threshold (Interactive)":
                 self.adjust_threshold()
             elif choice == "📏 Adjust Size (Interactive)":

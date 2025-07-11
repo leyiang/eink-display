@@ -18,6 +18,7 @@ from modules.WireManager import WireManager
 from modules.PipeManager import PipeManager
 from modules.mouse import getCursorInfo
 from modules.utils import debounce
+from mouse_magnet import MouseMagnet
 
 def create_menu_item(menu, label, func):
     item = wx.MenuItem(menu, -1, label)
@@ -92,6 +93,7 @@ class App(wx.App):
         self.x = 0
         self.y = 0
         self.pipe_manager = PipeManager()
+        self.mouse_magnet = None
         super(App, self).__init__(False)
 
     def OnInit(self):
@@ -105,6 +107,9 @@ class App(wx.App):
         # Clean up pipes
         self.pipe_manager.stop_listening()
         self.pipe_manager.cleanup_pipes()
+        # Stop magnet if running
+        if self.mouse_magnet:
+            self.mouse_magnet.stop()
 
     def toggle_capture(self):
         if self.stop:
@@ -148,6 +153,31 @@ class App(wx.App):
             self.wire.hideWire()
 
         self.config.update("mode", mode)
+
+    def start_magnet(self):
+        """添加当前鼠标X轴位置到磁铁列表并启动磁铁"""
+        # 获取当前鼠标X轴位置
+        from pynput import mouse
+        mouse_controller = mouse.Controller()
+        current_x = mouse_controller.position[0]
+        
+        # 如果磁铁不存在，创建新的磁铁
+        if self.mouse_magnet is None:
+            self.mouse_magnet = MouseMagnet(magnet_positions=[current_x])
+            self.mouse_magnet.start()
+            print(f"鼠标磁铁已启动，初始位置X={current_x}")
+        else:
+            # 如果磁铁已存在，添加新位置
+            self.mouse_magnet.add_magnet_position(current_x)
+
+    def stop_magnet(self):
+        """停止鼠标磁铁并清除所有磁铁位置"""
+        if self.mouse_magnet:
+            self.mouse_magnet.stop()
+            self.mouse_magnet = None
+            print("鼠标磁铁已停止，所有磁铁位置已清除")
+        else:
+            print("鼠标磁铁未运行")
 
     def getText(self):
         text = ""
@@ -634,7 +664,9 @@ class App(wx.App):
             "select_area": lambda: self.select_area(None),
             "get_thresh": self.get_thresh,
             "get_size": self.get_size,
-            "get_ratio": self.get_ratio
+            "get_ratio": self.get_ratio,
+            "start_magnet": self.start_magnet,
+            "stop_magnet": self.stop_magnet
         }
         self.pipe_manager.register_commands(command_map)
 
