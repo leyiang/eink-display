@@ -12,7 +12,7 @@ import tkinter as tk
 
 
 class MouseMagnet:
-    def __init__(self, magnet_positions=None, magnet_radius=200, force_strength=0.3, update_interval=0.01, capture_mode_check=None):
+    def __init__(self, magnet_positions=None, magnet_radius=200, force_strength=0.3, update_interval=0.01, capture_mode_check=None, dead_zone=30):
         """
         初始化鼠标磁铁
         
@@ -22,6 +22,7 @@ class MouseMagnet:
             force_strength: 磁力强度（0-1之间）
             update_interval: 更新间隔（秒）
             capture_mode_check: 检查是否为捕获模式的回调函数
+            dead_zone: 死区范围（像素），在此范围内鼠标X轴完全锁定
         """
         self.magnet_radius = magnet_radius
         self.force_strength = force_strength
@@ -29,6 +30,7 @@ class MouseMagnet:
         self.running = False
         self.mouse_controller = mouse.Controller()
         self.capture_mode_check = capture_mode_check
+        self.dead_zone = dead_zone
         
         # 获取单个显示器尺寸
         self.screen_width = self._get_screen_width()
@@ -42,6 +44,7 @@ class MouseMagnet:
         print(f"磁铁X轴位置: {self.magnet_positions}")
         print(f"磁力半径: {self.magnet_radius}px")
         print(f"磁力强度: {self.force_strength}")
+        print(f"死区范围: {self.dead_zone}px")
     
     def _get_screen_width(self):
         """获取单个显示器宽度"""
@@ -116,22 +119,28 @@ class MouseMagnet:
                 min_distance = distance
                 closest_magnet = magnet_x
         
-        # 如果找到了在有效范围内的磁铁，应用磁力
-        if closest_magnet is not None and min_distance > 5:  # 避免在磁铁点抖动
-            # 计算磁力强度（距离越近，磁力越强）
-            force_factor = (self.magnet_radius - min_distance) / self.magnet_radius
-            # 增强拖拽力度
-            actual_force = self.force_strength * force_factor * 2.0
-            
-            # 计算X轴移动向量
-            dx = closest_magnet - current_x
-            
-            # 应用磁力（仅X轴）
-            new_x = current_x + dx * actual_force
-            new_y = current_y  # Y轴保持不变
-            
-            # 移动鼠标
-            self.mouse_controller.position = (new_x, new_y)
+        # 如果找到了在有效范围内的磁铁，应用磁力或死区锁定
+        if closest_magnet is not None:
+            # 死区机制：在死区范围内完全锁定X轴位置
+            if min_distance <= self.dead_zone:
+                # 完全锁定在磁铁位置
+                self.mouse_controller.position = (closest_magnet, current_y)
+            elif min_distance > self.dead_zone:
+                # 在死区外应用磁力
+                # 计算磁力强度（距离越近，磁力越强）
+                force_factor = (self.magnet_radius - min_distance) / self.magnet_radius
+                # 增强拖拽力度
+                actual_force = self.force_strength * force_factor * 2.0
+                
+                # 计算X轴移动向量
+                dx = closest_magnet - current_x
+                
+                # 应用磁力（仅X轴）
+                new_x = current_x + dx * actual_force
+                new_y = current_y  # Y轴保持不变
+                
+                # 移动鼠标
+                self.mouse_controller.position = (new_x, new_y)
     
     def magnet_loop(self):
         """磁铁效果主循环"""
@@ -163,7 +172,8 @@ def main():
     magnet = MouseMagnet(
         magnet_radius=200,    # 磁力半径200像素
         force_strength=0.3,   # 磁力强度30%
-        update_interval=0.008 # 8ms更新一次，保证流畅
+        update_interval=0.008, # 8ms更新一次，保证流畅
+        dead_zone=30          # 死区范围30像素
     )
     
     try:
