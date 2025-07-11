@@ -28,6 +28,7 @@ class MouseMagnet:
         self.force_strength = force_strength
         self.update_interval = update_interval
         self.running = False
+        self.paused = False  # 新增暂停状态
         self.mouse_controller = mouse.Controller()
         self.capture_mode_check = capture_mode_check
         self.dead_zone = dead_zone
@@ -87,6 +88,15 @@ class MouseMagnet:
         else:
             print(f"磁铁位置 {x} 已存在")
     
+    def rotate_magnet_positions(self):
+        """旋转磁铁位置列表：[a, b, c] => [b, c, a]"""
+        if len(self.magnet_positions) > 1:
+            first = self.magnet_positions.pop(0)
+            self.magnet_positions.append(first)
+            print(f"磁铁位置已旋转，当前激活位置: {self.magnet_positions[0]}, 所有位置: {self.magnet_positions}")
+        else:
+            print("磁铁位置少于2个，无需旋转")
+    
     def clear_magnet_positions(self):
         """清除所有磁铁位置"""
         self.magnet_positions.clear()
@@ -105,8 +115,12 @@ class MouseMagnet:
         self.scroll_pause_time = time.time()
     
     def apply_magnet_force(self):
-        """应用磁铁效果（仅X轴，支持多个磁铁位置）"""
+        """应用磁铁效果（仅X轴，仅使用第一个磁铁位置）"""
         if not self.magnet_positions:
+            return
+        
+        # 检查是否暂停
+        if self.paused:
             return
         
         # 检查是否为捕获模式，如果不是则不应用磁力
@@ -120,31 +134,25 @@ class MouseMagnet:
         current_pos = self.mouse_controller.position
         current_x, current_y = current_pos
         
-        # 找到最近的磁铁位置
-        closest_magnet = None
-        min_distance = float('inf')
+        # 仅使用第一个磁铁位置
+        active_magnet = self.magnet_positions[0]
+        distance = abs(current_x - active_magnet)
         
-        for magnet_x in self.magnet_positions:
-            distance = abs(current_x - magnet_x)
-            if distance < min_distance and distance < self.magnet_radius:
-                min_distance = distance
-                closest_magnet = magnet_x
-        
-        # 如果找到了在有效范围内的磁铁，应用磁力或死区锁定
-        if closest_magnet is not None:
+        # 检查是否在磁力作用范围内
+        if distance < self.magnet_radius:
             # 死区机制：在死区范围内完全锁定X轴位置
-            if min_distance <= self.dead_zone:
+            if distance <= self.dead_zone:
                 # 完全锁定在磁铁位置
-                self.mouse_controller.position = (closest_magnet, current_y)
-            elif min_distance > self.dead_zone:
+                self.mouse_controller.position = (active_magnet, current_y)
+            else:
                 # 在死区外应用磁力
                 # 计算磁力强度（距离越近，磁力越强）
-                force_factor = (self.magnet_radius - min_distance) / self.magnet_radius
+                force_factor = (self.magnet_radius - distance) / self.magnet_radius
                 # 增强拖拽力度
                 actual_force = self.force_strength * force_factor * 2.0
                 
                 # 计算X轴移动向量
-                dx = closest_magnet - current_x
+                dx = active_magnet - current_x
                 
                 # 应用磁力（仅X轴）
                 new_x = current_x + dx * actual_force
@@ -172,6 +180,28 @@ class MouseMagnet:
             self.magnet_thread.start()
             print("鼠标磁铁效果已启动")
             print("按 Ctrl+C 退出")
+    
+    def pause(self):
+        """暂停磁铁效果"""
+        self.paused = True
+        print("鼠标磁铁效果已暂停")
+    
+    def resume(self):
+        """恢复磁铁效果"""
+        self.paused = False
+        print("鼠标磁铁效果已恢复")
+    
+    def toggle_pause(self):
+        """切换暂停/恢复状态"""
+        if self.paused:
+            self.resume()
+        else:
+            self.pause()
+        return not self.paused  # 返回当前是否为激活状态
+    
+    def is_paused(self):
+        """检查是否暂停"""
+        return self.paused
     
     def stop(self):
         """停止磁铁效果"""

@@ -10,6 +10,7 @@ import threading
 import pyperclip
 import time
 from pynput.mouse import Listener
+from pynput import keyboard
 from PIL import ImageGrab, Image
 from modules.ConfigManager import ConfigManager
 from modules.KeyEvent import KeyEvent
@@ -44,6 +45,7 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
         create_menu_item(menu, 'Toggle Capture', self.app.toggle_capture)
         create_menu_item(menu, 'Select Area', self.app.select_area)
         create_menu_item(menu, 'Clear Magnet', self.app.clear_magnet)
+        create_menu_item(menu, 'Toggle Magnet', self.app.toggle_magnet)
         create_menu_item(menu, 'Exit', self.on_exit)
         return menu
 
@@ -82,6 +84,10 @@ class App(wx.App):
         self.filePart = 0
         self.captureMode = True
         self.scroll = 0
+        
+        # 键盘状态跟踪
+        self.alt_pressed = False
+        self.shift_pressed = False
         self.prevMD5 = ""
         self.server = subprocess.Popen(["live-server", "./viewer", "--no-browser", "--port=8888"], stdout=subprocess.DEVNULL)
         self.prevCursor = ""
@@ -190,6 +196,15 @@ class App(wx.App):
             print("已清除所有磁铁位置")
         else:
             print("鼠标磁铁未运行，无需清除")
+    
+    def toggle_magnet(self, _event=None):
+        """切换磁铁暂停/恢复状态（托盘菜单回调）"""
+        if self.mouse_magnet:
+            is_active = self.mouse_magnet.toggle_pause()
+            status = "已恢复" if is_active else "已暂停"
+            print(f"磁铁功能{status}")
+        else:
+            print("鼠标磁铁未运行，无法切换状态")
 
     def getText(self):
         text = ""
@@ -376,12 +391,48 @@ class App(wx.App):
                 # self.imageModeThread()
             time.sleep(0.1)
 
+    def on_key_press(self, key):
+        """键盘按下事件"""
+        try:
+            if key == keyboard.Key.alt_l or key == keyboard.Key.alt_r:
+                self.alt_pressed = True
+            elif key == keyboard.Key.shift or key == keyboard.Key.shift_r:
+                self.shift_pressed = True
+        except AttributeError:
+            pass
+
+    def on_key_release(self, key):
+        """键盘释放事件"""
+        try:
+            if key == keyboard.Key.alt_l or key == keyboard.Key.alt_r:
+                self.alt_pressed = False
+            elif key == keyboard.Key.shift or key == keyboard.Key.shift_r:
+                self.shift_pressed = False
+        except AttributeError:
+            pass
+
     def listenScroll(self):
-        def on_click(x, y, button, *_args):
+        def on_click(x, y, button, pressed):
             if not self.captureMode: return
 
             btn = button.name
-            if btn in ["left", "middle"]:
+            
+            # 只处理按下事件，忽略释放事件
+            if not pressed:
+                return
+                
+            if btn == "left":
+                # 检测 Alt+Shift+左键按下
+                if self.alt_pressed and self.shift_pressed:
+                    print(f"Alt+Shift+左键按下检测到，位置: ({x}, {y})")
+                    # 旋转磁铁位置
+                    if hasattr(self, 'mouse_magnet') and self.mouse_magnet:
+                        self.mouse_magnet.rotate_magnet_positions()
+                    return
+                
+                if not self.textMode:
+                    self.updateImageWithRefresh(x, y)
+            elif btn == "middle":
                 if not self.textMode:
                     self.updateImageWithRefresh(x, y)
 
@@ -390,6 +441,13 @@ class App(wx.App):
             if hasattr(self, 'mouse_magnet') and self.mouse_magnet:
                 self.mouse_magnet.on_scroll(x, y, dx, dy)
             self.filePart -= dy
+
+        # 启动键盘监听器
+        keyboard_listener = keyboard.Listener(
+            on_press=self.on_key_press,
+            on_release=self.on_key_release
+        )
+        keyboard_listener.start()
 
         with Listener(on_scroll=on_scroll, on_click=on_click) as listener:
             listener.join()
