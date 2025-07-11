@@ -514,6 +514,7 @@ class App(wx.App):
         self.keyListener.on("0", self.expandRatio)
 
         self.keyListener.on("`", self.toggle_capture)
+        self.keyListener.onCombo("` + tab", self.toggleStop)
         self.keyListener.on("~", self.toggleStop)
         self.keyListener.on("scroll_lock", self.toggleStop)
         # self.keyListener.on("print_screen", self.redrawImage)
