@@ -81,7 +81,7 @@ class App(wx.App):
         self.captureMode = True
         self.scroll = 0
         self.prevMD5 = ""
-        self.server = subprocess.Popen(["live-server", "./viewer", "--no-browser"], stdout=subprocess.DEVNULL)
+        self.server = subprocess.Popen(["live-server", "./viewer", "--no-browser", "--port=8888"], stdout=subprocess.DEVNULL)
         self.prevCursor = ""
         self.keyListener = KeyEvent()
 
@@ -242,6 +242,41 @@ class App(wx.App):
         time.sleep(.5)
         subprocess.getoutput("cp ./viewer/tmp.png ./viewer/res.png")
 
+    @debounce(0.3)
+    def updateImageWithRefresh(self, x, y):
+        """更新图像并刷新eink屏幕，合并操作避免双重显示"""
+        print(f"[DEBUG] updateImageWithRefresh called at position ({x}, {y}) - debounce timeout: 300ms")
+        
+        # 先显示黑屏准备刷新
+        print("[DEBUG] Displaying black screen for refresh...")
+        fn = lambda x : 0
+        img = Image.new(mode="RGB", size=(2600, 1600))
+        img = img.convert("L").point(fn, mode="1")
+        img.save("./viewer/res.png", optimize=True)
+        img.close()
+        
+        time.sleep(.5)
+        
+        # 然后更新并显示新图像
+        print("[DEBUG] Capturing and displaying new image...")
+        startX = x - self.size.w
+        startY = y - self.size.h
+        endX = x + self.size.w
+        endY = y + self.size.h
+
+        screen = ImageGrab.grab(bbox=(startX, startY, endX, endY))
+        w,h = screen.size
+        bw = 3 # border width
+        rm_border = screen.crop((bw,bw,w-bw, h-bw))
+        rm_border.save("./viewer/raw.png")
+
+        bw_screen = self.get_bw_image( screen )
+        self.display_image( bw_screen )
+
+        screen.close()
+        bw_screen.close()
+        print("[DEBUG] updateImageWithRefresh completed")
+
 
     @debounce(.05)
     def refreshText(self):
@@ -306,8 +341,7 @@ class App(wx.App):
             btn = button.name
             if btn in ["left", "middle"]:
                 if not self.textMode:
-                    self.updateImage(x, y)
-                    self.refreshImage()
+                    self.updateImageWithRefresh(x, y)
 
         def on_scroll(x, y, dx, dy):
             self.filePart -= dy
