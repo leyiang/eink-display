@@ -15,11 +15,12 @@ class KeyEvent():
 
     def on_press(self, key):
         try:
-            k = key.char  # single-char keys
+            k = key.char.lower() if key.char else None  # single-char keys, normalize to lowercase
         except:
-            k = key.name  # other keys
+            k = getattr(key, 'name', str(key))  # other keys, handle KeyCode objects
 
-        self.pressed_keys.add(k)
+        if k:
+            self.pressed_keys.add(k)
         
         current_time = time.time()
 
@@ -31,7 +32,7 @@ class KeyEvent():
                     callback()
 
         # Handle double tap detection
-        if k in self.doubleTapMaps:
+        if k and k in self.doubleTapMaps:
             if k in self.lastKeyTime:
                 time_diff = current_time - self.lastKeyTime[k]
                 if time_diff <= self.doubleTapWindow:
@@ -44,7 +45,7 @@ class KeyEvent():
 
             self.lastKeyTime[k] = current_time
 
-        if k in self.keyMaps:
+        if k and k in self.keyMaps:
             print("Keydown: ", k)
 
             for callback in self.keyMaps[k]:
@@ -52,19 +53,37 @@ class KeyEvent():
 
     def on_release(self, key):
         try:
-            k = key.char  # single-char keys
+            k = key.char.lower() if key.char else None  # single-char keys, normalize to lowercase
         except:
-            k = key.name  # other keys
+            k = getattr(key, 'name', str(key))  # other keys, handle KeyCode objects
 
-        self.pressed_keys.discard(k)
+        if k:
+            self.pressed_keys.discard(k)
 
     def is_combo_pressed(self, combo_key):
         """Check if a combo key is pressed"""
         keys = combo_key.split("+")
         for key in keys:
-            key = key.strip()
-            if key not in self.pressed_keys:
-                return False
+            key = key.strip().lower()
+            # Handle alt key mapping
+            if key == "alt":
+                alt_pressed = ("alt_l" in self.pressed_keys or "alt_r" in self.pressed_keys or "alt" in self.pressed_keys)
+                if not alt_pressed:
+                    return False
+            # Handle shift key mapping  
+            elif key == "shift":
+                shift_pressed = ("shift" in self.pressed_keys or "shift_r" in self.pressed_keys)
+                if not shift_pressed:
+                    return False
+            # Handle ctrl key mapping
+            elif key == "ctrl":
+                ctrl_pressed = ("ctrl_l" in self.pressed_keys or "ctrl_r" in self.pressed_keys)
+                if not ctrl_pressed:
+                    return False
+            else:
+                key_pressed = key in self.pressed_keys
+                if not key_pressed:
+                    return False
         return True
 
     def on(self, key, callback):

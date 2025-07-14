@@ -595,7 +595,7 @@ class App(wx.App):
 
         self.keyListener.on("f7", self.wire.start_area_selection)
         self.keyListener.on("f8", self.open_rofi_menu)
-        self.keyListener.onCombo("alt + M", self.start_magnet)
+        self.keyListener.onCombo("alt + shift + m", self.start_magnet)
 
     def select_area(self, _event):
         try:
