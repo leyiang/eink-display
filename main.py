@@ -128,8 +128,9 @@ class App(wx.App):
         else:
             self.wire.hideWire()
 
-    def toggleStop(self):
-        self.stop = not self.stop
+    def setStop(self, stop_state):
+        """设置stop状态"""
+        self.stop = stop_state
         self.icon.set_icon()
 
         if self.stop:
@@ -138,6 +139,9 @@ class App(wx.App):
         else:
             self.captureMode = True
             self.wire.showWire()
+
+    def toggleStop(self):
+        self.setStop(not self.stop)
 
     def toggleMode(self):
         self.textMode = not self.textMode
@@ -196,6 +200,34 @@ class App(wx.App):
             print("已清除所有磁铁位置")
         else:
             print("鼠标磁铁未运行，无需清除")
+
+    def load_magnet_preset(self, env_name):
+        """加载磁铁预设环境"""
+        if self.mouse_magnet is None:
+            self.mouse_magnet = MouseMagnet(
+                capture_mode_check=lambda: self.captureMode
+            )
+            self.mouse_magnet.start()
+            print("鼠标磁铁已启动")
+        
+        env_config = self.mouse_magnet.load_preset_environment(env_name)
+        if env_config:
+            # 设置wire尺寸
+            frame_width, frame_height = env_config["frame_size"]
+            self.size.w = frame_width
+            self.size.h = frame_height
+            self.wire.updateSize()
+            
+            # 确保stop状态被禁用，让wire显示
+            self.setStop(False)
+            
+            print(f"已加载预设环境: {env_name}, 设置wire尺寸: {self.size.w}x{self.size.h}, stop状态已禁用")
+            return True
+        return False
+
+    def get_available_magnet_environments(self):
+        """获取可用的磁铁预设环境"""
+        return MouseMagnet.PRESET_ENVIRONMENTS.keys()
     
     def toggle_magnet(self, _event=None):
         """切换磁铁暂停/恢复状态（托盘菜单回调）"""
@@ -743,6 +775,11 @@ class App(wx.App):
             "start_magnet": self.start_magnet,
             "stop_magnet": self.stop_magnet
         }
+        
+        # 添加预设环境命令
+        for env_name in MouseMagnet.PRESET_ENVIRONMENTS.keys():
+            command_map[f"magnet_{env_name}"] = lambda name=env_name: self.load_magnet_preset(name)
+        
         self.pipe_manager.register_commands(command_map)
 
 def main():

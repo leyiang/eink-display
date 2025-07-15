@@ -123,6 +123,33 @@ class EinkRofiMenu:
                 self.send_command("ratio_down")
                 last_selected = 2
 
+    def adjust_magnet_environment(self) -> bool:
+        """交互式磁铁环境选择"""
+        last_selected = 1
+
+        while True:
+            options = [
+                "🧲 Magnet Environment Settings",
+                "🔧 nndesign ([2021], 788x492)",
+                "🔧 thomas ([2106, 2204], 808x505)",
+                "↩️ Back to Main Menu"
+            ]
+
+            choice = self.rofi.show_interactive_menu(
+                options=options,
+                selected_row=last_selected,
+                prompt="Magnet Environment Selection"
+            )
+
+            if not choice or choice in ["↩️ Back to Main Menu", ""]:
+                return False  # 返回False表示没有选择环境
+            elif choice == "🔧 nndesign ([2021], 788x492)":
+                self.send_command("magnet_nndesign")
+                return True  # 返回True表示选择了环境
+            elif choice == "🔧 thomas ([2106, 2204], 808x505)":
+                self.send_command("magnet_thomas")
+                return True  # 返回True表示选择了环境
+
     def run_main_menu(self) -> None:
         """运行主菜单"""
         while True:
@@ -130,6 +157,7 @@ class EinkRofiMenu:
                 "🔧 Adjust Threshold (Interactive)",
                 "🧲 Start Magnet",
                 "🚫 Stop Magnet",
+                "⚡ Magnet Environments",
                 "📏 Adjust Size (Interactive)",
                 "📐 Adjust Ratio (Interactive)",
                 "🎯 Toggle Capture Mode",
@@ -152,6 +180,9 @@ class EinkRofiMenu:
             elif choice == "🚫 Stop Magnet":
                 self.send_command("stop_magnet")
                 break  # 退出菜单
+            elif choice == "⚡ Magnet Environments":
+                if self.adjust_magnet_environment():
+                    break  # 如果选择了环境，退出主菜单
             elif choice == "🔧 Adjust Threshold (Interactive)":
                 self.adjust_threshold()
             elif choice == "📏 Adjust Size (Interactive)":

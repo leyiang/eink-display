@@ -12,6 +12,12 @@ import tkinter as tk
 
 
 class MouseMagnet:
+    # 预设环境配置 - 格式: {"env_name": {"positions": [x1, x2, ...], "frame_size": [width, height]}}
+    PRESET_ENVIRONMENTS = {
+        "nndesign": {"positions": [2021], "frame_size": [788, 492]},
+        "thomas": {"positions": [2106, 2204], "frame_size": [808, 505]},
+    }
+
     def __init__(self, magnet_positions=None, magnet_radius=200, force_strength=0.3, update_interval=0.01, capture_mode_check=None, dead_zone=30):
         """
         初始化鼠标磁铁
@@ -101,6 +107,22 @@ class MouseMagnet:
         """清除所有磁铁位置"""
         self.magnet_positions.clear()
         print("已清除所有磁铁位置")
+
+    def load_preset_environment(self, env_name):
+        """加载预设环境配置"""
+        if env_name in self.PRESET_ENVIRONMENTS:
+            env_config = self.PRESET_ENVIRONMENTS[env_name]
+            self.magnet_positions = env_config["positions"].copy()
+            print(f"已加载预设环境 '{env_name}': 磁铁位置 {self.magnet_positions}, 帧尺寸 {env_config['frame_size']}")
+            return env_config
+        else:
+            print(f"预设环境 '{env_name}' 不存在")
+            print(f"可用环境: {list(self.PRESET_ENVIRONMENTS.keys())}")
+            return None
+
+    def get_available_environments(self):
+        """获取可用的预设环境列表"""
+        return list(self.PRESET_ENVIRONMENTS.keys())
     
     def get_current_mouse_x(self):
         """获取当前鼠标X轴位置"""
