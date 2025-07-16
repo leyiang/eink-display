@@ -29,10 +29,21 @@ class WireManager():
                     self.wire = None
 
     def updateSize(self):
-        # First destroy the old window
-        self.hideWire()
-        # Then create new window with updated size
-        self.showWire()
+        with self._lock:
+            # 如果已经有窗口，直接更新其大小而不重新创建
+            if self.wire:
+                try:
+                    # 先销毁旧窗口
+                    self.wire.destroy()
+                except Exception as e:
+                    print(f"Error destroying wire window during resize: {e}")
+                finally:
+                    self.wire = None
+            
+            # 创建新窗口
+            if self.wire is None:
+                print(self.size.w, self.size.h)
+                self.wire = createOutlineWindow(2*self.size.w, 2*self.size.h)
 
     def on_area_selected(self, width, height):
         # Update size manager with new dimensions

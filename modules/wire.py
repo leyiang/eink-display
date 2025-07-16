@@ -99,11 +99,19 @@ class OutlineWindow:
     def destroy(self):
         if not self._destroyed:
             try:
+                # 先设置标志避免重复销毁
+                self._destroyed = True
+                # 隐藏窗口
+                self.window.unmap()
+                self.d.flush()
+                # 销毁窗口
                 self.window.destroy()
                 self.d.flush()
-            except:
-                pass
-            self._destroyed = True
+                # 确保操作完成
+                self.d.sync()
+            except Exception as e:
+                print(f"Error destroying outline window: {e}")
+                self._destroyed = True
 
     def __del__(self):
         if not self._destroyed:
