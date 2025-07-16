@@ -33,8 +33,8 @@ class OutlineWindow:
         geometry = self.screen.root.get_geometry()
 
         self.window = self.screen.root.create_window(
-                100,
-                200, # y
+                x,
+                y,
                 geometry.width, # width
                 geometry.height, # height
                 0, # border_width
@@ -64,12 +64,13 @@ class OutlineWindow:
         inner_rect.fill_rectangle(gc, 0, 0, w - (lw * 2), h - (lw * 2))
         gc.free()
 
-        # First add the outer rectangle within the window at x y coordinates
-        self.window.shape_mask(shape.SO.Set, shape.SK.Bounding, x, y, outer_rect)
+        # First add the outer rectangle within the window at (0,0) coordinates
+        # because x,y are already used for window positioning
+        self.window.shape_mask(shape.SO.Set, shape.SK.Bounding, 0, 0, outer_rect)
 
-        # Now subtract the inner rectangle at the same coordinates + line width from the outer rect
+        # Now subtract the inner rectangle at line width offset from the outer rect
         # This creates a red rectangular outline that can be clicked through
-        self.window.shape_mask(shape.SO.Subtract, shape.SK.Bounding, x + lw, y + lw, inner_rect)
+        self.window.shape_mask(shape.SO.Subtract, shape.SK.Bounding, lw, lw, inner_rect)
         self.window.shape_select_input(0)
         self.window.map()
 
@@ -85,16 +86,24 @@ class OutlineWindow:
 
         # Apply changes
         display.flush()
+        display.sync()
 
         self._destroyed = False
 
     # cx, cy cursor pos
     def updatePos(self, cx, cy):
-        newX = cx - self.w // 2
-        newY = cy - self.h // 2
+        if self._destroyed:
+            return
+        
+        try:
+            newX = cx - self.w // 2
+            newY = cy - self.h // 2
 
-        self.window.configure(x=newX, y=newY, stack_mode=X.Above)
-        self.d.flush()
+            self.window.configure(x=newX, y=newY, stack_mode=X.Above)
+            self.d.flush()
+        except Exception as e:
+            # 如果窗口已被销毁，静默处理
+            self._destroyed = True
 
     def destroy(self):
         if not self._destroyed:
@@ -117,6 +126,21 @@ class OutlineWindow:
         if not self._destroyed:
             self.destroy()
 
-def createOutlineWindow(w, h):
-    instance = OutlineWindow(display.Display(), 0, 0, w, h)
+def createOutlineWindow(w, h, use_cursor_pos=True):
+    if use_cursor_pos:
+        from modules.mouse import getCursorInfo
+        info = getCursorInfo()
+        if info:
+            cx, cy = info
+            # 计算窗口位置使鼠标在中心
+            x = cx - w // 2
+            y = cy - h // 2
+        else:
+            # 如果无法获取鼠标位置，使用默认位置
+            x, y = 100, 200
+    else:
+        # 使用默认位置，让 updateRegion 循环负责位置更新
+        x, y = 100, 200
+    
+    instance = OutlineWindow(display.Display(), x, y, w, h)
     return instance
