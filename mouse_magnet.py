@@ -16,6 +16,7 @@ class MouseMagnet:
     PRESET_ENVIRONMENTS = {
         "nndesign": {"positions": [2021], "frame_size": [788, 492]},
         "thomas": {"positions": [2106, 2204], "frame_size": [808, 505]},
+        "advanced-engineer-math": {"positions": [1790, 1743], "frame_size": [828, 523]}, 
     }
 
     def __init__(self, magnet_positions=None, magnet_radius=200, force_strength=0.3, update_interval=0.01, capture_mode_check=None, dead_zone=30):

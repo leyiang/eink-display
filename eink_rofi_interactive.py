@@ -132,6 +132,7 @@ class EinkRofiMenu:
                 "🧲 Magnet Environment Settings",
                 "🔧 nndesign ([2021], 788x492)",
                 "🔧 thomas ([2106, 2204], 808x505)",
+                "🔧 advanced-engineer-math",
                 "↩️ Back to Main Menu"
             ]
 
@@ -149,6 +150,9 @@ class EinkRofiMenu:
             elif choice == "🔧 thomas ([2106, 2204], 808x505)":
                 self.send_command("magnet_thomas")
                 return True  # 返回True表示选择了环境
+            elif choice == "🔧 advanced-engineer-math":
+                self.send_command("magnet_advanced-engineer-math")
+                return True
 
     def run_main_menu(self) -> None:
         """运行主菜单"""
